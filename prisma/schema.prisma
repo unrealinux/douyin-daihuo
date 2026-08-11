@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductSource {
+  MANUAL
+  IMPORT
+  CRAWLER
+}
+
+enum ProductStatus {
+  CANDIDATE
+  FOLLOWING
+  SELECTED
+  DROPPED
+}
+
+enum Trend {
+  UP
+  STEADY
+  DOWN
+}
+
+enum ScrapeTaskType {
+  KEYWORD
+  LINK
+}
+
+enum ScrapeTaskStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum ScriptStyle {
+  SPOKEN
+  REVIEW
+  STORY
+  UNBOXING
+}
+
+enum ScriptStatus {
+  DRAFT
+  ADOPTED
+  DISCARDED
+}
+
+enum AssetType {
+  VIDEO
+  IMAGE
+}
+
+enum AssetStatus {
+  PENDING
+  PUBLISHED
+  DROPPED
+}
+
+enum PublishStatus {
+  PLANNED
+  PUBLISHED
+  SKIPPED
+}
+
+model Product {
+  id             Int       @id @default(autoincrement())
+  name           String
+  url            String?
+  imageUrl       String?
+  category       String?
+  price          Float?
+  commissionRate Float?
+  dailySales     Int?
+  trend          Trend     @default(STEADY)
+  source         ProductSource @default(MANUAL)
+  status         ProductStatus @default(CANDIDATE)
+  note           String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  scrapeTasks    ScrapeTask[]
+  scriptIdeas    ScriptIdea[]
+  assets         Asset[]
+
+  @@index([status])
+  @@index([category])
+}
+
+model ScrapeTask {
+  id         Int              @id @default(autoincrement())
+  productId  Int?
+  product    Product?         @relation(fields: [productId], references: [id])
+  type       ScrapeTaskType   @default(KEYWORD)
+  keyword    String?
+  url        String?
+  status     ScrapeTaskStatus @default(QUEUED)
+  message    String?
+  retryCount Int              @default(0)
+  createdAt  DateTime         @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+}
+
+model ScriptIdea {
+  id          Int          @id @default(autoincrement())
+  productId   Int?
+  product     Product?     @relation(fields: [productId], references: [id])
+  title       String?
+  hook        String?
+  body        String
+  shotScript  String?
+  hashtags    String?
+  style       ScriptStyle  @default(SPOKEN)
+  durationSec Int          @default(30)
+  llmModel    String?
+  status      ScriptStatus @default(DRAFT)
+  createdAt   DateTime     @default(now())
+  assets      Asset[]
+}
+
+model Asset {
+  id          Int         @id @default(autoincrement())
+  productId   Int?
+  product     Product?    @relation(fields: [productId], references: [id])
+  scriptId    Int?
+  script      ScriptIdea? @relation(fields: [scriptId], references: [id])
+  fileName    String
+  filePath    String
+  fileType    AssetType   @default(VIDEO)
+  size        Int         @default(0)
+  coverPath   String?
+  title       String?
+  tags        String?
+  status      AssetStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  schedules   Schedule[]
+}
+
+model Schedule {
+  id            Int           @id @default(autoincrement())
+  assetId       Int
+  asset         Asset         @relation(fields: [assetId], references: [id])
+  scheduledAt   DateTime
+  publishStatus PublishStatus @default(PLANNED)
+  publishUrl    String?
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+
+  @@index([scheduledAt])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
