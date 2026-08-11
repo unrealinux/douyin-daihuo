@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { createTask, listTasks, spawnRunner, checkPlaywright } from "@/services/taskRunner";
+import { createTask, listTasks, spawnRunner, checkPlaywright, pollQueuedTasks } from "@/services/taskRunner";
 
 export async function GET() {
+  void pollQueuedTasks();
   const [tasks, pw] = await Promise.all([listTasks(), checkPlaywright()]);
   return NextResponse.json({ tasks, playwright: pw });
 }
@@ -18,5 +19,6 @@ export async function POST(req: Request) {
     productId: body.productId ? Number(body.productId) : undefined,
   });
   spawnRunner(task.id);
+  void pollQueuedTasks();
   return NextResponse.json(task, { status: 201 });
 }

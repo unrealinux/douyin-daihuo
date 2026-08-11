@@ -98,7 +98,8 @@ async function main() {
         data: { status: ScrapeTaskStatus.QUEUED, retryCount: retries },
       });
       const delay = Math.pow(2, retries) * 1000;
-      setTimeout(() => process.exit(0), delay);
+      await new Promise((r) => setTimeout(r, delay));
+      process.exit(0);
     } else {
       await prisma.scrapeTask.update({
         where: { id: taskId },
