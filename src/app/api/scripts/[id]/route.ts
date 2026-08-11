@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getScript, setScriptStatus, deleteScript } from "@/services/scriptService";
-import { ScriptStatus } from "@prisma/client";
+import { Prisma, ScriptStatus } from "@prisma/client";
 
 function parseScriptId(id: string): number | null {
   const num = Number(id);
@@ -29,7 +29,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (e instanceof SyntaxError) {
       return NextResponse.json({ error: "请求体不是有效 JSON" }, { status: 400 });
     }
-    return NextResponse.json({ error: String(e) }, { status: 400 });
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "脚本不存在" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "服务器错误" }, { status: 500 });
   }
 }
 
@@ -41,6 +44,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await deleteScript(numId);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 400 });
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "脚本不存在" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "服务器错误" }, { status: 500 });
   }
 }
