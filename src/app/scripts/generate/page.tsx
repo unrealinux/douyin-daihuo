@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button, Input, Label, Select } from "@/components/ui";
@@ -16,7 +16,7 @@ const STYLES = [
   { value: "UNBOXING", label: "开箱" },
 ];
 
-export default function GeneratePage() {
+function GenerateForm() {
   const sp = useSearchParams();
   const preselect = sp.get("productId");
 
@@ -105,5 +105,13 @@ export default function GeneratePage() {
       {result && <p className="text-sm text-green-600">{result}</p>}
       {err && <p className="text-sm text-red-600">{err}</p>}
     </div>
+  );
+}
+
+export default function GeneratePage() {
+  return (
+    <Suspense fallback={<p className="text-gray-400">加载中...</p>}>
+      <GenerateForm />
+    </Suspense>
   );
 }
