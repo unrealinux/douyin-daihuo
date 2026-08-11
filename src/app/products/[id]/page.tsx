@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import { Button, Input, Label, Select } from "@/components/ui";
@@ -15,27 +15,36 @@ interface Product {
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [p, setP] = useState<Product | null>(null);
   const [form, setForm] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/products/${id}`).then((r) => r.json()).then((data) => {
-      setP(data);
-      setForm({
-        name: data.name, url: data.url ?? "", category: data.category ?? "",
-        price: data.price ?? "", commissionRate: data.commissionRate ?? "",
-        dailySales: data.dailySales ?? "", status: data.status, trend: data.trend, note: data.note ?? "",
+    fetch(`/api/products/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        setLoading(false);
+        if (!data || typeof data.id !== "number") {
+          setP(null);
+          return;
+        }
+        setP(data);
+        setForm({
+          name: data.name, url: data.url ?? "", category: data.category ?? "",
+          price: data.price ?? "", commissionRate: data.commissionRate ?? "",
+          dailySales: data.dailySales ?? "", status: data.status, trend: data.trend, note: data.note ?? "",
+        });
       });
-    });
   }, [id]);
 
-  if (!p || !form) return <p>加载中...</p>;
+  if (loading) return <p>加载中...</p>;
+
+  if (!p || !form) return <p className="text-gray-400">商品不存在或已被删除</p>;
 
   const set = (k: string, v: string) => setForm({ ...form, [k]: v });
 
   const save = async () => {
-    await fetch(`/api/products/${id}`, {
+    const res = await fetch(`/api/products/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -46,7 +55,15 @@ export default function ProductDetailPage() {
         status: form.status, trend: form.trend, note: form.note || undefined,
       }),
     });
-    router.refresh();
+    if (res.ok) {
+      const updated = await res.json();
+      setP(updated);
+      setForm({
+        name: updated.name, url: updated.url ?? "", category: updated.category ?? "",
+        price: updated.price ?? "", commissionRate: updated.commissionRate ?? "",
+        dailySales: updated.dailySales ?? "", status: updated.status, trend: updated.trend, note: updated.note ?? "",
+      });
+    }
   };
 
   return (
