@@ -1,6 +1,6 @@
-export function Button({ children, onClick, variant = "primary", className = "", type = "button" }: {
+export function Button({ children, onClick, variant = "primary", className = "", type = "button", disabled }: {
   children: React.ReactNode; onClick?: () => void; variant?: "primary" | "secondary" | "danger";
-  className?: string; type?: "button" | "submit";
+  className?: string; type?: "button" | "submit"; disabled?: boolean;
 }) {
   const styles = {
     primary: "bg-accent text-white hover:opacity-90",
@@ -8,7 +8,7 @@ export function Button({ children, onClick, variant = "primary", className = "",
     danger: "bg-red-500 text-white hover:opacity-90",
   };
   return (
-    <button type={type} onClick={onClick} className={`rounded px-3 py-1.5 text-sm ${styles[variant]} ${className}`}>
+    <button type={type} onClick={onClick} disabled={disabled} className={`rounded px-3 py-1.5 text-sm ${styles[variant]} ${className} ${disabled ? "cursor-not-allowed opacity-50" : ""}`}>
       {children}
     </button>
   );

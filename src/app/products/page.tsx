@@ -1,0 +1,107 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import StatusBadge from "@/components/StatusBadge";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { Button, Input, Select } from "@/components/ui";
+
+interface Product {
+  id: number; name: string; category?: string | null; price?: number | null;
+  commissionRate?: number | null; dailySales?: number | null; status: string;
+  trend: string; source: string;
+  _count?: { scriptIdeas: number; assets: number };
+}
+
+const EMPTY: Product[] = [];
+
+export default function ProductsPage() {
+  const [products, setProducts] = useState<Product[]>(EMPTY);
+  const [status, setStatus] = useState("ALL");
+  const [keyword, setKeyword] = useState("");
+  const [sort, setSort] = useState("updatedAt");
+  const [order, setOrder] = useState("desc");
+  const [del, setDel] = useState<Product | null>(null);
+
+  const load = useCallback(async () => {
+    const q = new URLSearchParams();
+    if (status !== "ALL") q.set("status", status);
+    if (keyword) q.set("keyword", keyword);
+    q.set("sort", sort);
+    q.set("order", order);
+    const res = await fetch(`/api/products?${q.toString()}`);
+    setProducts(await res.json());
+  }, [status, keyword, sort, order]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const confirmDelete = async () => {
+    if (!del) return;
+    await fetch(`/api/products/${del.id}`, { method: "DELETE" });
+    setDel(null);
+    load();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">商品库</h1>
+        <div className="flex gap-2">
+          <Link href="/products/import"><Button variant="secondary">CSV 导入</Button></Link>
+          <Link href="/products/tasks"><Button variant="secondary">爬虫任务</Button></Link>
+          <Link href="/products/new"><Button>新增商品</Button></Link>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="ALL">全部状态</option>
+          <option value="CANDIDATE">候选</option>
+          <option value="FOLLOWING">跟进</option>
+          <option value="SELECTED">已选</option>
+          <option value="DROPPED">放弃</option>
+        </Select>
+        <Input placeholder="搜索名称" value={keyword} onChange={(e) => setKeyword(e.target.value)} className="w-48" />
+        <Select value={sort} onChange={(e) => setSort(e.target.value)}>
+          <option value="updatedAt">更新时间</option>
+          <option value="commissionRate">佣金率</option>
+          <option value="dailySales">销量</option>
+        </Select>
+        <Select value={order} onChange={(e) => setOrder(e.target.value)}>
+          <option value="desc">降序</option>
+          <option value="asc">升序</option>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {products.map((p) => (
+          <div key={p.id} className="rounded border bg-white p-4">
+            <div className="flex items-start justify-between">
+              <Link href={`/products/${p.id}`} className="font-medium hover:text-accent">{p.name}</Link>
+              <StatusBadge status={p.status} />
+            </div>
+            <div className="mt-2 space-y-1 text-sm text-gray-600">
+              <div>类目: {p.category ?? "-"} · 价格: {p.price != null ? `¥${p.price}` : "-"}</div>
+              <div>佣金率: {p.commissionRate != null ? `${p.commissionRate}%` : "-"} · 近30天销量: {p.dailySales ?? "-"}</div>
+              <div>趋势: <StatusBadge status={p.trend} /> · 脚本 {p._count?.scriptIdeas ?? 0} · 素材 {p._count?.assets ?? 0}</div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Link href={`/products/${p.id}`}><Button variant="secondary">编辑</Button></Link>
+              <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="secondary">生成文案</Button></Link>
+              <Button variant="danger" onClick={() => setDel(p)}>删除</Button>
+            </div>
+          </div>
+        ))}
+        {products.length === 0 && <p className="col-span-3 py-10 text-center text-gray-400">暂无商品</p>}
+      </div>
+
+      <ConfirmDialog
+        open={!!del}
+        title="删除商品"
+        message={`确定删除「${del?.name ?? ""}」？关联的脚本将保留但解除关联。`}
+        onConfirm={confirmDelete}
+        onCancel={() => setDel(null)}
+      />
+    </div>
+  );
+}
