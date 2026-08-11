@@ -1,4 +1,4 @@
-import { Prisma, ProductStatus, Trend } from "@prisma/client";
+import { ProductStatus, Trend } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { parseProductsCsv } from "./csvService";
 import type { CsvProductRow } from "./csvService";
@@ -35,8 +35,8 @@ export function filterProducts<T extends { name: string; category?: string | nul
   return [...out].sort((a, b) => {
     const va = a[sort];
     const vb = b[sort];
-    const numA = typeof va === "number" ? va : 0;
-    const numB = typeof vb === "number" ? vb : 0;
+    const numA = va instanceof Date ? va.getTime() : (typeof va === "number" ? va : 0);
+    const numB = vb instanceof Date ? vb.getTime() : (typeof vb === "number" ? vb : 0);
     return order === "asc" ? numA - numB : numB - numA;
   });
 }
@@ -107,4 +107,3 @@ export async function getCategories() {
   return rows.map((r) => r.category).filter((c): c is string => !!c);
 }
 
-export type { Prisma };
