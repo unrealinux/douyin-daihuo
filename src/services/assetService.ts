@@ -49,10 +49,10 @@ export async function deleteAsset(id: number) {
   const asset = await prisma.asset.findUnique({ where: { id } });
   if (asset) {
     const abs = path.join(process.cwd(), asset.filePath);
-    if (fs.existsSync(abs)) fs.unlinkSync(abs);
+    try { if (fs.existsSync(abs)) fs.unlinkSync(abs); } catch {}
     if (asset.coverPath) {
       const cover = path.join(process.cwd(), asset.coverPath);
-      if (fs.existsSync(cover)) fs.unlinkSync(cover);
+      try { if (fs.existsSync(cover)) fs.unlinkSync(cover); } catch {}
     }
   }
   return prisma.asset.delete({ where: { id } });
