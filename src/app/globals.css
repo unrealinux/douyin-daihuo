@@ -3,5 +3,17 @@
 @tailwind utilities;
 
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-page text-fg;
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
+
+/* 数字表格对齐 */
+.tnum {
+  font-feature-settings: "tnum";
+}
+
+/* 深色滚动条 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2e2e36; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a44; }
