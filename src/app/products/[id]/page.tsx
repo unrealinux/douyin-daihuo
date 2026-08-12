@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
-import { Button, Input, Label, Select } from "@/components/ui";
+import { Button, Card, Input, Label, Select } from "@/components/ui";
 
 interface Product {
   id: number; name: string; url?: string | null; category?: string | null;
@@ -37,9 +37,9 @@ export default function ProductDetailPage() {
       });
   }, [id]);
 
-  if (loading) return <p>加载中...</p>;
+  if (loading) return <div className="h-48 animate-pulse rounded-lg bg-white/5" />;
 
-  if (!p || !form) return <p className="text-gray-400">商品不存在或已被删除</p>;
+  if (!p || !form) return <p className="text-white/40">商品不存在或已被删除</p>;
 
   const set = (k: string, v: string) => setForm({ ...form, [k]: v });
 
@@ -69,11 +69,11 @@ export default function ProductDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{p.name}</h1>
+        <h1 className="text-2xl font-bold">{p.name}</h1>
         <StatusBadge status={p.status} />
       </div>
 
-      <div className="grid max-w-lg gap-4">
+      <Card className="max-w-lg space-y-4 p-5">
         <div><Label>商品名称</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
         <div><Label>链接</Label><Input value={form.url} onChange={(e) => set("url", e.target.value)} /></div>
         <div><Label>类目</Label><Input value={form.category} onChange={(e) => set("category", e.target.value)} /></div>
@@ -106,18 +106,18 @@ export default function ProductDetailPage() {
           <Button onClick={save}>保存</Button>
           <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="secondary">生成文案</Button></Link>
         </div>
-      </div>
+      </Card>
 
       <section>
         <h2 className="mb-2 font-semibold">已生成脚本（{p.scriptIdeas.length}）</h2>
         <div className="space-y-2">
           {p.scriptIdeas.map((s) => (
-            <div key={s.id} className="flex items-center justify-between rounded border bg-white px-3 py-2">
-              <Link href={`/scripts?id=${s.id}`} className="hover:text-accent">{s.title ?? `脚本 #${s.id}`}</Link>
+            <div key={s.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-surface px-3 py-2">
+              <Link href={`/scripts?id=${s.id}`} className="text-fg hover:text-accent">{s.title ?? `脚本 #${s.id}`}</Link>
               <StatusBadge status={s.status} />
             </div>
           ))}
-          {p.scriptIdeas.length === 0 && <p className="text-sm text-gray-400">暂无脚本</p>}
+          {p.scriptIdeas.length === 0 && <p className="text-sm text-white/40">暂无脚本</p>}
         </div>
       </section>
     </div>

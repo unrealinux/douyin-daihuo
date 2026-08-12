@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { Button, Input, Select } from "@/components/ui";
+import { Button, Card, Input, Select } from "@/components/ui";
 
 interface Product {
   id: number; name: string; category?: string | null; price?: number | null;
@@ -45,7 +45,7 @@ export default function ProductsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">商品库</h1>
+        <h1 className="text-2xl font-bold">商品库</h1>
         <div className="flex gap-2">
           <Link href="/products/import"><Button variant="secondary">CSV 导入</Button></Link>
           <Link href="/products/tasks"><Button variant="secondary">爬虫任务</Button></Link>
@@ -75,24 +75,26 @@ export default function ProductsPage() {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         {products.map((p) => (
-          <div key={p.id} className="rounded border bg-white p-4">
+          <Card key={p.id} hover className="p-4">
             <div className="flex items-start justify-between">
-              <Link href={`/products/${p.id}`} className="font-medium hover:text-accent">{p.name}</Link>
+              <Link href={`/products/${p.id}`} className="font-medium text-fg hover:text-accent">{p.name}</Link>
               <StatusBadge status={p.status} />
             </div>
-            <div className="mt-2 space-y-1 text-sm text-gray-600">
+            <div className="tnum mt-2 space-y-1 text-sm text-white/60">
               <div>类目: {p.category ?? "-"} · 价格: {p.price != null ? `¥${p.price}` : "-"}</div>
               <div>佣金率: {p.commissionRate != null ? `${p.commissionRate}%` : "-"} · 近30天销量: {p.dailySales ?? "-"}</div>
               <div>趋势: <StatusBadge status={p.trend} /> · 脚本 {p._count?.scriptIdeas ?? 0} · 素材 {p._count?.assets ?? 0}</div>
             </div>
             <div className="mt-3 flex gap-2">
-              <Link href={`/products/${p.id}`}><Button variant="secondary">编辑</Button></Link>
-              <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="secondary">生成文案</Button></Link>
+              <Link href={`/products/${p.id}`}><Button variant="ghost">编辑</Button></Link>
+              <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="ghost">生成文案</Button></Link>
               <Button variant="danger" onClick={() => setDel(p)}>删除</Button>
             </div>
-          </div>
+          </Card>
         ))}
-        {products.length === 0 && <p className="col-span-3 py-10 text-center text-gray-400">暂无商品</p>}
+        {products.length === 0 && (
+          <div className="col-span-full py-16 text-center text-white/40">暂无商品</div>
+        )}
       </div>
 
       <ConfirmDialog
