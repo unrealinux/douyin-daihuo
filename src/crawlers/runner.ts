@@ -1,37 +1,68 @@
 import "dotenv/config";
-import { chromium } from "playwright";
+import { chromium, type Browser } from "playwright";
 import { ScrapeTaskStatus } from "@prisma/client";
+import { spawn } from "child_process";
+import path from "path";
 import { prisma } from "../lib/db";
 import { getCrawlerConfig } from "../services/settingService";
-import { parseProductsCsv } from "../services/csvService";
+
+function respawn(taskId: number) {
+  const runnerPath = path.join(process.cwd(), "src", "crawlers", "runner.ts");
+  const child = spawn("npx", ["tsx", runnerPath, String(taskId)], {
+    detached: true,
+    stdio: "ignore",
+    shell: true,
+  });
+  child.unref();
+}
+
+async function claimTask(taskId: number): Promise<boolean> {
+  const result = await prisma.scrapeTask.updateMany({
+    where: { id: taskId, status: ScrapeTaskStatus.QUEUED },
+    data: { status: ScrapeTaskStatus.RUNNING, startedAt: new Date() },
+  });
+  return result.count === 1;
+}
 
 async function main() {
   const taskId = Number(process.argv[2]);
-  if (!taskId) {
+  if (!Number.isInteger(taskId) || taskId <= 0) {
     console.error("usage: tsx runner.ts <taskId>");
     process.exit(1);
   }
 
-  const task = await prisma.scrapeTask.findUnique({ where: { id: taskId } });
-  if (!task || task.status !== ScrapeTaskStatus.QUEUED) {
+  if (!(await claimTask(taskId))) {
     process.exit(0);
   }
 
-  await prisma.scrapeTask.update({ where: { id: taskId }, data: { status: ScrapeTaskStatus.RUNNING, startedAt: new Date() } });
+  const task = await prisma.scrapeTask.findUnique({ where: { id: taskId } });
+  if (!task) {
+    process.exit(0);
+  }
 
   const cfg = await getCrawlerConfig();
   const maxRetries = 2;
+  let browser: Browser | null = null;
 
   try {
-    const browser = await chromium.launch({ headless: true, proxy: cfg.proxyUrl ? { server: cfg.proxyUrl } : undefined });
+    browser = await chromium.launch({
+      headless: true,
+      proxy: cfg.proxyUrl ? { server: cfg.proxyUrl } : undefined,
+    });
     const page = await browser.newPage();
     await page.setDefaultTimeout(cfg.timeoutSec * 1000);
 
-    const rows: Array<{ name: string; url?: string; category?: string; price?: number; commissionRate?: number; dailySales?: number }> = [];
+    const rows: Array<{
+      name: string;
+      url?: string;
+      category?: string;
+      price?: number;
+      commissionRate?: number;
+      dailySales?: number;
+    }> = [];
 
     if (task.type === "KEYWORD" && task.keyword) {
       // 抖音精选联盟/搜索页没有稳定公开结构，这里用通用电商搜索 fallback。
-      // 用户可在 settings 里配置后自行替换目标页；结构变化时此段可单独调整。
       await page.goto(`https://www.baidu.com/s?wd=${encodeURIComponent(task.keyword + " 抖音 带货 商品")}`);
       await page.waitForTimeout(1500);
       const links = await page.$$eval("h3", (els) =>
@@ -53,8 +84,6 @@ async function main() {
       if (title) rows.push({ name: title, url: task.url });
     }
 
-    await browser.close();
-
     if (!rows.length) {
       await prisma.scrapeTask.update({
         where: { id: taskId },
@@ -67,39 +96,40 @@ async function main() {
       process.exit(0);
     }
 
-    for (const row of rows) {
-      await prisma.product.create({
+    await prisma.$transaction([
+      ...rows.map((row) =>
+        prisma.product.create({
+          data: {
+            name: row.name,
+            url: row.url,
+            category: row.category,
+            price: row.price,
+            commissionRate: row.commissionRate,
+            dailySales: row.dailySales,
+            source: "CRAWLER",
+          },
+        })
+      ),
+      prisma.scrapeTask.update({
+        where: { id: taskId },
         data: {
-          name: row.name,
-          url: row.url,
-          category: row.category,
-          price: row.price,
-          commissionRate: row.commissionRate,
-          dailySales: row.dailySales,
-          source: "CRAWLER",
+          status: ScrapeTaskStatus.SUCCESS,
+          message: `成功抓取 ${rows.length} 条并入库`,
+          finishedAt: new Date(),
         },
-      });
-    }
-
-    await prisma.scrapeTask.update({
-      where: { id: taskId },
-      data: {
-        status: ScrapeTaskStatus.SUCCESS,
-        message: `成功抓取 ${rows.length} 条并入库`,
-        finishedAt: new Date(),
-      },
-    });
+      }),
+    ]);
   } catch (e) {
     const current = await prisma.scrapeTask.findUnique({ where: { id: taskId } });
     const retries = (current?.retryCount ?? 0) + 1;
     if (retries <= maxRetries) {
       await prisma.scrapeTask.update({
         where: { id: taskId },
-        data: { status: ScrapeTaskStatus.QUEUED, retryCount: retries },
+        data: { status: ScrapeTaskStatus.QUEUED, retryCount: retries, message: null },
       });
       const delay = Math.pow(2, retries) * 1000;
       await new Promise((r) => setTimeout(r, delay));
-      process.exit(0);
+      respawn(taskId);
     } else {
       await prisma.scrapeTask.update({
         where: { id: taskId },
@@ -109,9 +139,21 @@ async function main() {
           finishedAt: new Date(),
         },
       });
-      process.exit(0);
+    }
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch {
+        /* ignore */
+      }
     }
   }
 }
 
-main().finally(() => process.exit(0));
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => process.exit(0));

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createTask, listTasks, spawnRunner, checkPlaywright, pollQueuedTasks } from "@/services/taskRunner";
 
 export async function GET() {
+  // 恢复因进程退出而未跑完的排队任务
   void pollQueuedTasks();
   const [tasks, pw] = await Promise.all([listTasks(), checkPlaywright()]);
   return NextResponse.json({ tasks, playwright: pw });
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     url: body.url,
     productId: body.productId ? Number(body.productId) : undefined,
   });
+  // 只 spawn 当前任务，避免与 poll 双重拉起
   spawnRunner(task.id);
-  void pollQueuedTasks();
   return NextResponse.json(task, { status: 201 });
 }

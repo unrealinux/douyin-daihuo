@@ -44,6 +44,21 @@ export function parseCrawlerConfig(raw: string | null): CrawlerConfig {
   }
 }
 
+export const API_KEY_REDACTED = "••••••••";
+
+export function redactLlmConfig(cfg: LlmConfig): LlmConfig & { apiKeyConfigured: boolean } {
+  return {
+    ...cfg,
+    apiKey: cfg.apiKey ? API_KEY_REDACTED : "",
+    apiKeyConfigured: Boolean(cfg.apiKey),
+  };
+}
+
+export function isRedactedApiKey(value: string | undefined | null): boolean {
+  if (!value) return true;
+  return value === API_KEY_REDACTED || /^•+$/.test(value);
+}
+
 export async function getLlmConfig(): Promise<LlmConfig> {
   const row = await prisma.setting.findUnique({ where: { key: "llm" } });
   return parseLlmConfig(row?.value ?? null);

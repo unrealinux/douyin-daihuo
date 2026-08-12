@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAsset, updateAsset, deleteAsset } from "@/services/assetService";
+import { getAsset, updateAsset, deleteAsset, pickAssetUpdate } from "@/services/assetService";
 import { Prisma } from "@prisma/client";
 
 function parseAssetId(id: string): number | null {
@@ -21,8 +21,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const numId = parseAssetId(id);
   if (numId === null) return NextResponse.json({ error: "无效的 ID" }, { status: 400 });
   try {
-    const body = await req.json();
-    const asset = await updateAsset(numId, body);
+    const body = (await req.json()) as Record<string, unknown>;
+    const patch = pickAssetUpdate(body);
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: "没有可更新的字段" }, { status: 400 });
+    }
+    const asset = await updateAsset(numId, patch);
     return NextResponse.json(asset);
   } catch (e) {
     if (e instanceof SyntaxError) {

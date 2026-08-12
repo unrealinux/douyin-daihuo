@@ -79,7 +79,13 @@ export async function updateProduct(id: number, input: Partial<ProductInput>) {
 }
 
 export async function deleteProduct(id: number) {
-  return prisma.product.delete({ where: { id } });
+  // 先解除关联，保留脚本/素材/任务记录（与列表页删除确认文案一致）
+  await prisma.$transaction([
+    prisma.scriptIdea.updateMany({ where: { productId: id }, data: { productId: null } }),
+    prisma.asset.updateMany({ where: { productId: id }, data: { productId: null } }),
+    prisma.scrapeTask.updateMany({ where: { productId: id }, data: { productId: null } }),
+    prisma.product.delete({ where: { id } }),
+  ]);
 }
 
 export async function importProductsCsv(text: string) {

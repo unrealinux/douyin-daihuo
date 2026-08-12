@@ -57,7 +57,8 @@ export default function ProductDetailPage() {
     });
     if (res.ok) {
       const updated = await res.json();
-      setP(updated);
+      // PATCH 不带关联，保留当前页已加载的 scriptIdeas
+      setP({ ...updated, scriptIdeas: updated.scriptIdeas ?? p.scriptIdeas ?? [] });
       setForm({
         name: updated.name, url: updated.url ?? "", category: updated.category ?? "",
         price: updated.price ?? "", commissionRate: updated.commissionRate ?? "",

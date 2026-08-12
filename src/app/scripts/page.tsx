@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { Button, Card } from "@/components/ui";
@@ -13,13 +14,32 @@ interface Script {
   product?: { id: number; name: string } | null;
 }
 
-export default function ScriptsPage() {
+function ScriptsList() {
+  const sp = useSearchParams();
+  const deepId = sp.get("id");
+
   const [scripts, setScripts] = useState<Script[]>([]);
   const [open, setOpen] = useState<Script | null>(null);
   const [del, setDel] = useState<Script | null>(null);
+  const [err, setErr] = useState("");
 
-  const load = () => fetch("/api/scripts").then((r) => r.json()).then(setScripts);
-  useEffect(() => { load(); }, []);
+  const load = () =>
+    fetch("/api/scripts")
+      .then(async (r) => {
+        if (!r.ok) throw new Error("加载失败");
+        return r.json();
+      })
+      .then((list: Script[]) => {
+        setScripts(list);
+        setErr("");
+        if (deepId) {
+          const found = list.find((s) => String(s.id) === deepId);
+          if (found) setOpen(found);
+        }
+      })
+      .catch((e) => setErr(String(e)));
+
+  useEffect(() => { load(); }, [deepId]);
 
   const setStatus = async (s: Script, status: string) => {
     await fetch(`/api/scripts/${s.id}`, {
@@ -55,9 +75,11 @@ export default function ScriptsPage() {
         <Link href="/scripts/generate"><Button>生成脚本</Button></Link>
       </div>
 
+      {err && <p className="text-sm text-danger">{err}</p>}
+
       <div className="space-y-3">
         {scripts.map((s) => (
-          <Card key={s.id} className="p-4">
+          <Card key={s.id} className={`p-4 ${deepId === String(s.id) ? "border-accent/40" : ""}`}>
             <div className="flex items-center justify-between">
               <div className="font-medium text-fg">
                 {s.title ?? `脚本 #${s.id}`}
@@ -76,7 +98,11 @@ export default function ScriptsPage() {
             </div>
           </Card>
         ))}
-        {scripts.length === 0 && <div className="py-16 text-center text-white/40">暂无脚本</div>}
+        {scripts.length === 0 && !err && (
+          <div className="py-16 text-center text-white/40">
+            暂无脚本 · <Link href="/scripts/generate" className="text-cyan-300 hover:underline">去生成</Link>
+          </div>
+        )}
       </div>
 
       {open && (
@@ -109,5 +135,13 @@ export default function ScriptsPage() {
         onCancel={() => setDel(null)}
       />
     </div>
+  );
+}
+
+export default function ScriptsPage() {
+  return (
+    <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-white/5" />}>
+      <ScriptsList />
+    </Suspense>
   );
 }

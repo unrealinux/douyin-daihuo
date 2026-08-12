@@ -12,7 +12,12 @@ const config: Config = {
         fg: "#f5f5f7",
         "fg-2": "#9a9aa3",
         accent: "#fe2c55",
-        cyan: "#22d3ee",
+        // 保留色阶，避免扁平 cyan 覆盖 Tailwind 的 cyan-300/500
+        cyan: {
+          DEFAULT: "#22d3ee",
+          300: "#67e8f9",
+          500: "#22d3ee",
+        },
         success: "#22c55e",
         warning: "#f59e0b",
         danger: "#ef4444",

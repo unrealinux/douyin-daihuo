@@ -16,7 +16,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!Number.isInteger(numId)) return NextResponse.json({ error: "invalid id" }, { status: 404 });
   const body = await req.json();
   try {
-    const product = await updateProduct(numId, body);
+    await updateProduct(numId, body);
+    const product = await getProduct(numId);
     return NextResponse.json(product);
   } catch (e) {
     if ((e as any)?.code === "P2025") return NextResponse.json({ error: "not found" }, { status: 404 });

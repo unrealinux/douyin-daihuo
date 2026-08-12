@@ -27,16 +27,29 @@ function GenerateForm() {
   const [sellingPoints, setSellingPoints] = useState("");
   const [style, setStyle] = useState("SPOKEN");
   const [duration, setDuration] = useState("30");
-  const [result, setResult] = useState("");
+  const [resultId, setResultId] = useState<number | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch("/api/products?status=ALL").then((r) => r.json()).then(setProducts);
+    fetch("/api/products?status=ALL")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setProducts)
+      .catch(() => setProducts([]));
   }, []);
 
   const generate = async () => {
-    setLoading(true); setErr(""); setResult("");
+    setLoading(true); setErr(""); setResultId(null);
+    if (mode === "product" && !productId) {
+      setErr("请选择商品");
+      setLoading(false);
+      return;
+    }
+    if (mode === "manual" && !productName.trim()) {
+      setErr("请填写商品名称");
+      setLoading(false);
+      return;
+    }
     const payload = mode === "product"
       ? { productId: Number(productId), style, durationSec: Number(duration), sellingPoints: sellingPoints || undefined }
       : { productName, sellingPoints, style, durationSec: Number(duration) };
@@ -47,7 +60,7 @@ function GenerateForm() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (res.ok) setResult(`已生成脚本 #${data.id}`);
+      if (res.ok) setResultId(data.id);
       else setErr(data.error ?? "生成失败");
     } catch (e) {
       setErr(String(e));
@@ -58,7 +71,7 @@ function GenerateForm() {
   const modeBtn = (m: "manual" | "product", label: string) => (
     <button
       onClick={() => setMode(m)}
-      className={`rounded-lg px-3 py-1.5 text-sm transition-all ${
+      className={`rounded-lg px-3 py-1.5 text-sm transition-all focus-visible:ring-2 ring-accent/50 ${
         mode === m ? "bg-accent text-white shadow-card" : "border border-white/10 text-white/70 hover:bg-white/10"
       }`}
     >
@@ -114,7 +127,14 @@ function GenerateForm() {
         <Button onClick={generate} disabled={loading}>
           {loading ? "生成中..." : "生成"}
         </Button>
-        {result && <p className="text-sm text-success">{result}</p>}
+        {resultId != null && (
+          <p className="text-sm text-success">
+            已生成脚本 #{resultId} ·{" "}
+            <Link href={`/scripts?id=${resultId}`} className="text-cyan-300 underline hover:text-cyan">
+              查看脚本
+            </Link>
+          </p>
+        )}
         {err && <p className="text-sm text-danger">{err}</p>}
       </Card>
     </div>

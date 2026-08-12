@@ -46,8 +46,9 @@ export function spawnRunner(taskId: number) {
 }
 
 export async function retryTask(id: number) {
+  if (!Number.isInteger(id) || id <= 0) return null;
   const task = await prisma.scrapeTask.findUnique({ where: { id } });
-  if (!task) return null;
+  if (!task || task.status !== ScrapeTaskStatus.FAILED) return null;
   const updated = await prisma.scrapeTask.update({
     where: { id },
     data: { status: ScrapeTaskStatus.QUEUED, message: null, retryCount: { increment: 1 } },
@@ -56,10 +57,12 @@ export async function retryTask(id: number) {
   return updated;
 }
 
+/** 拉起排队中的任务；runner 内原子抢占，重复 spawn 安全 */
 export async function pollQueuedTasks() {
   const queued = await prisma.scrapeTask.findMany({
     where: { status: ScrapeTaskStatus.QUEUED },
     take: 5,
+    orderBy: { createdAt: "asc" },
   });
   for (const t of queued) {
     spawnRunner(t.id);

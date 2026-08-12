@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { parseLlmConfig, parseCrawlerConfig, DEFAULT_LLM, DEFAULT_CRAWLER } from "@/services/settingService";
+import {
+  parseLlmConfig,
+  parseCrawlerConfig,
+  redactLlmConfig,
+  isRedactedApiKey,
+  API_KEY_REDACTED,
+  DEFAULT_LLM,
+  DEFAULT_CRAWLER,
+} from "@/services/settingService";
 
 describe("settingService", () => {
   it("parseLlmConfig returns defaults when raw is null", () => {
@@ -23,5 +31,17 @@ describe("settingService", () => {
   it("parseCrawlerConfig parses proxyUrl", () => {
     const cfg = parseCrawlerConfig(JSON.stringify({ proxyUrl: "http://127.0.0.1:7890" }));
     expect(cfg.proxyUrl).toBe("http://127.0.0.1:7890");
+  });
+
+  it("redactLlmConfig hides api key when configured", () => {
+    const redacted = redactLlmConfig({ ...DEFAULT_LLM, apiKey: "sk-secret" });
+    expect(redacted.apiKey).toBe(API_KEY_REDACTED);
+    expect(redacted.apiKeyConfigured).toBe(true);
+  });
+
+  it("isRedactedApiKey detects placeholder", () => {
+    expect(isRedactedApiKey(API_KEY_REDACTED)).toBe(true);
+    expect(isRedactedApiKey("")).toBe(true);
+    expect(isRedactedApiKey("sk-real")).toBe(false);
   });
 });

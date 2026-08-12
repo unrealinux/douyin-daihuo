@@ -17,6 +17,34 @@ interface Schedule {
   id: number; scheduledAt: string; publishStatus: string; publishUrl?: string | null;
 }
 
+function toLocalInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function schedulePresets(): { value: string; label: string }[] {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(10, 0, 0, 0);
+
+  const dayAfter = new Date();
+  dayAfter.setDate(dayAfter.getDate() + 2);
+  dayAfter.setHours(10, 0, 0, 0);
+
+  const friday = new Date();
+  const day = friday.getDay();
+  let daysUntilFri = (5 - day + 7) % 7;
+  if (daysUntilFri === 0 && friday.getHours() >= 19) daysUntilFri = 7;
+  friday.setDate(friday.getDate() + daysUntilFri);
+  friday.setHours(19, 0, 0, 0);
+
+  return [
+    { value: toLocalInputValue(tomorrow), label: "明早10点" },
+    { value: toLocalInputValue(dayAfter), label: "后天10点" },
+    { value: toLocalInputValue(friday), label: "周五晚7点" },
+  ];
+}
+
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -98,9 +126,9 @@ export default function AssetsPage() {
               <div className="mt-2 flex gap-1">
                 <Select id={`assetsel-${a.id}`} defaultValue="" className="text-xs">
                   <option value="" disabled>+ 排期</option>
-                  <option value="2026-08-12T10:00">明早10点</option>
-                  <option value="2026-08-13T10:00">后天10点</option>
-                  <option value="2026-08-14T19:00">周五晚7点</option>
+                  {schedulePresets().map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </Select>
                 <Button variant="secondary" className="text-xs" onClick={() => {
                   const sel = document.getElementById(`assetsel-${a.id}`) as HTMLSelectElement;
