@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Card } from "@/components/ui";
 
 interface Stats {
   productCount: number;
@@ -26,29 +27,37 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold">仪表盘</h1>
+      <h1 className="text-2xl font-bold">仪表盘</h1>
       {stats ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {cards.map((c) => (
-            <Link key={c.label} href={c.href} className="rounded border bg-white p-4 hover:shadow">
-              <div className="text-sm text-gray-500">{c.label}</div>
-              <div className="mt-1 text-2xl font-bold">{c.value}</div>
+            <Link key={c.label} href={c.href}>
+              <Card hover className="p-4">
+                <div className="text-sm text-white/60">{c.label}</div>
+                <div className="tnum mt-1 text-3xl font-bold text-fg">{c.value}</div>
+              </Card>
             </Link>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-400">加载中...</p>
+        <div className="animate-pulse">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-20 rounded-lg bg-white/5" />
+            ))}
+          </div>
+        </div>
       )}
 
-      <div className="rounded border bg-white p-4 text-sm text-gray-600">
-        <p className="font-semibold text-gray-900">使用流程</p>
+      <Card className="p-4 text-sm text-white/60">
+        <p className="font-semibold text-fg">使用流程</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
-          <li><Link href="/products/new" className="text-blue-600 hover:underline">录入/导入商品</Link>，或用<a href="/products/tasks" className="text-blue-600 hover:underline">爬虫</a>抓取</li>
-          <li>在<a href="/scripts/generate" className="text-blue-600 hover:underline">脚本文案</a>页面批量生成文案</li>
-          <li>在<a href="/assets" className="text-blue-600 hover:underline">素材排期</a>上传视频并安排发布</li>
+          <li><Link href="/products/new" className="text-cyan-300 hover:underline">录入/导入商品</Link>，或用<a href="/products/tasks" className="text-cyan-300 hover:underline">爬虫</a>抓取</li>
+          <li>在<a href="/scripts/generate" className="text-cyan-300 hover:underline">脚本文案</a>页面批量生成文案</li>
+          <li>在<a href="/assets" className="text-cyan-300 hover:underline">素材排期</a>上传视频并安排发布</li>
           <li>发布后在排期里回填抖音链接</li>
         </ol>
-      </div>
+      </Card>
     </div>
   );
 }
