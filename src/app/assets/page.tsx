@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { Button, Input, Label, Select } from "@/components/ui";
+import { Button, Card, Select } from "@/components/ui";
 
 interface Asset {
   id: number; fileName: string; filePath: string; fileType: string; size: number;
@@ -20,16 +20,12 @@ interface Schedule {
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [products, setProducts] = useState<{ id: number; name: string }[]>([]);
-  const [scripts, setScripts] = useState<{ id: number; title?: string | null }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [del, setDel] = useState<Asset | null>(null);
 
   const load = useCallback(() => {
     fetch("/api/assets").then((r) => r.json()).then(setAssets);
     fetch("/api/schedules").then((r) => r.json()).then(setSchedules);
-    fetch("/api/products?status=ALL").then((r) => r.json()).then(setProducts);
-    fetch("/api/scripts").then((r) => r.json()).then(setScripts);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -79,8 +75,8 @@ export default function AssetsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">素材与排期</h1>
-        <label className="cursor-pointer rounded bg-accent px-4 py-2 text-sm text-white hover:opacity-90">
+        <h1 className="text-2xl font-bold">素材与排期</h1>
+        <label className="cursor-pointer rounded-lg bg-gradient-to-r from-[#fe2c55] to-[#ff6b81] px-4 py-2 text-sm font-medium text-white transition-all hover:brightness-110">
           {uploading ? "上传中..." : "上传素材"}
           <input type="file" accept="video/*,image/*" className="hidden" onChange={upload} />
         </label>
@@ -90,13 +86,13 @@ export default function AssetsPage() {
         <h2 className="mb-2 font-semibold">素材库（{assets.length}）</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {assets.map((a) => (
-            <div key={a.id} className="rounded border bg-white p-3">
+            <Card key={a.id} hover className="p-3">
               <div className="mb-2 flex items-center justify-between">
                 <StatusBadge status={a.status} />
-                <button onClick={() => setDel(a)} className="text-xs text-gray-400 hover:text-red-500">删除</button>
+                <button onClick={() => setDel(a)} className="text-xs text-white/40 hover:text-danger">删除</button>
               </div>
-              <div className="text-sm font-medium">{a.title ?? a.fileName}</div>
-              <div className="text-xs text-gray-500">
+              <div className="text-sm font-medium text-fg">{a.title ?? a.fileName}</div>
+              <div className="text-xs text-white/50">
                 {a.product?.name ?? "未关联商品"} · {a.script ? `脚本#${a.script.id}` : "无脚本"}
               </div>
               <div className="mt-2 flex gap-1">
@@ -114,19 +110,19 @@ export default function AssetsPage() {
               {a.schedules.length > 0 && (
                 <div className="mt-2 space-y-1 text-xs">
                   {a.schedules.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between rounded bg-gray-50 px-2 py-1">
-                      <span>{new Date(s.scheduledAt).toLocaleString()}</span>
+                    <div key={s.id} className="flex items-center justify-between rounded bg-white/5 px-2 py-1">
+                      <span className="text-white/70">{new Date(s.scheduledAt).toLocaleString()}</span>
                       <StatusBadge status={s.publishStatus} />
                       {s.publishStatus === "PLANNED" && (
-                        <Button variant="secondary" className="text-xs" onClick={() => markPublished(s)}>发布</Button>
+                        <Button variant="ghost" className="text-xs" onClick={() => markPublished(s)}>发布</Button>
                       )}
                     </div>
                   ))}
                 </div>
               )}
-            </div>
+            </Card>
           ))}
-          {assets.length === 0 && <p className="col-span-full py-10 text-center text-gray-400">暂无素材，点右上角上传</p>}
+          {assets.length === 0 && <div className="col-span-full py-16 text-center text-white/40">暂无素材，点右上角上传</div>}
         </div>
       </section>
 
@@ -136,19 +132,19 @@ export default function AssetsPage() {
           {schedules.map((s) => {
             const asset = assets.find((a) => a.schedules.some((x) => x.id === s.id));
             return (
-              <div key={s.id} className="flex items-center justify-between rounded border bg-white px-3 py-2 text-sm">
+              <div key={s.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-surface px-3 py-2 text-sm">
                 <div>
-                  <span className="font-medium">{new Date(s.scheduledAt).toLocaleString()}</span>
-                  <span className="ml-3 text-gray-500">{asset?.title ?? asset?.fileName ?? "素材已删除"}</span>
+                  <span className="tnum font-medium text-fg">{new Date(s.scheduledAt).toLocaleString()}</span>
+                  <span className="ml-3 text-white/50">{asset?.title ?? asset?.fileName ?? "素材已删除"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={s.publishStatus} />
-                  {s.publishUrl && <a href={s.publishUrl} target="_blank" className="text-xs text-blue-600">链接</a>}
+                  {s.publishUrl && <a href={s.publishUrl} target="_blank" className="text-xs text-cyan-300">链接</a>}
                 </div>
               </div>
             );
           })}
-          {schedules.length === 0 && <p className="py-6 text-center text-sm text-gray-400">暂无排期</p>}
+          {schedules.length === 0 && <div className="py-6 text-center text-sm text-white/40">暂无排期</div>}
         </div>
       </section>
 

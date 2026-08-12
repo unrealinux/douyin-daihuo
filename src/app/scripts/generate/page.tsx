@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Button, Input, Label, Select } from "@/components/ui";
+import { Button, Card, Input, Label, Select } from "@/components/ui";
 
 interface Product {
   id: number; name: string; note?: string | null; category?: string | null;
@@ -55,62 +55,75 @@ function GenerateForm() {
     setLoading(false);
   };
 
+  const modeBtn = (m: "manual" | "product", label: string) => (
+    <button
+      onClick={() => setMode(m)}
+      className={`rounded-lg px-3 py-1.5 text-sm transition-all ${
+        mode === m ? "bg-accent text-white shadow-card" : "border border-white/10 text-white/70 hover:bg-white/10"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <div className="max-w-xl space-y-4">
+    <div className="mx-auto max-w-xl space-y-4">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-bold">生成脚本文案</h1>
-        <Link href="/scripts"><span className="text-sm text-blue-600 hover:underline">返回列表</span></Link>
+        <h1 className="text-2xl font-bold">生成脚本文案</h1>
+        <Link href="/scripts"><span className="text-sm text-cyan-300 hover:underline">返回列表</span></Link>
       </div>
 
       <div className="flex gap-3">
-        <button onClick={() => setMode("manual")} className={`rounded px-3 py-1 ${mode === "manual" ? "bg-accent text-white" : "border"}`}>手动输入</button>
-        <button onClick={() => setMode("product")} className={`rounded px-3 py-1 ${mode === "product" ? "bg-accent text-white" : "border"}`}>从商品库选品</button>
+        {modeBtn("manual", "手动输入")}
+        {modeBtn("product", "从商品库选品")}
       </div>
 
-      {mode === "product" ? (
-        <div>
-          <Label>选择商品</Label>
-          <Select value={productId} onChange={(e) => setProductId(e.target.value)}>
-            <option value="">请选择</option>
-            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </Select>
-          <div className="mt-3">
-            <Label>补充卖点（可选，自动带出商品备注/类目）</Label>
-            <Input value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} />
+      <Card className="space-y-4 p-5">
+        {mode === "product" ? (
+          <div>
+            <Label>选择商品</Label>
+            <Select value={productId} onChange={(e) => setProductId(e.target.value)}>
+              <option value="">请选择</option>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+            <div className="mt-3">
+              <Label>补充卖点（可选，自动带出商品备注/类目）</Label>
+              <Input value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div><Label>商品名称</Label><Input value={productName} onChange={(e) => setProductName(e.target.value)} /></div>
+            <div><Label>卖点（可填价格、材质、适用人群等）</Label><Input value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} /></div>
+          </>
+        )}
+
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Label>风格</Label>
+            <Select value={style} onChange={(e) => setStyle(e.target.value)}>
+              {STYLES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </Select>
+          </div>
+          <div className="flex-1">
+            <Label>目标时长（秒）</Label>
+            <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} />
           </div>
         </div>
-      ) : (
-        <div className="space-y-3">
-          <div><Label>商品名称</Label><Input value={productName} onChange={(e) => setProductName(e.target.value)} /></div>
-          <div><Label>卖点（可填价格、材质、适用人群等）</Label><Input value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} /></div>
-        </div>
-      )}
 
-      <div className="flex gap-3">
-        <div>
-          <Label>风格</Label>
-          <Select value={style} onChange={(e) => setStyle(e.target.value)}>
-            {STYLES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </Select>
-        </div>
-        <div>
-          <Label>目标时长（秒）</Label>
-          <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} />
-        </div>
-      </div>
-
-      <Button onClick={generate} disabled={loading}>
-        {loading ? "生成中..." : "生成"}
-      </Button>
-      {result && <p className="text-sm text-green-600">{result}</p>}
-      {err && <p className="text-sm text-red-600">{err}</p>}
+        <Button onClick={generate} disabled={loading}>
+          {loading ? "生成中..." : "生成"}
+        </Button>
+        {result && <p className="text-sm text-success">{result}</p>}
+        {err && <p className="text-sm text-danger">{err}</p>}
+      </Card>
     </div>
   );
 }
 
 export default function GeneratePage() {
   return (
-    <Suspense fallback={<p className="text-gray-400">加载中...</p>}>
+    <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-white/5" />}>
       <GenerateForm />
     </Suspense>
   );
