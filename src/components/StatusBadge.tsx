@@ -1,22 +1,22 @@
 const STATUS_COLORS: Record<string, string> = {
-  CANDIDATE: "bg-gray-100 text-gray-700",
-  FOLLOWING: "bg-blue-100 text-blue-700",
-  SELECTED: "bg-green-100 text-green-700",
-  DROPPED: "bg-red-100 text-red-700",
-  DRAFT: "bg-gray-100 text-gray-700",
-  ADOPTED: "bg-green-100 text-green-700",
-  DISCARDED: "bg-red-100 text-red-700",
-  PENDING: "bg-amber-100 text-amber-700",
-  PUBLISHED: "bg-green-100 text-green-700",
-  PLANNED: "bg-blue-100 text-blue-700",
-  SKIPPED: "bg-gray-100 text-gray-700",
-  QUEUED: "bg-gray-100 text-gray-700",
-  RUNNING: "bg-blue-100 text-blue-700",
-  SUCCESS: "bg-green-100 text-green-700",
-  FAILED: "bg-red-100 text-red-700",
-  UP: "bg-green-100 text-green-700",
-  STEADY: "bg-gray-100 text-gray-700",
-  DOWN: "bg-red-100 text-red-700",
+  CANDIDATE: "bg-white/10 text-white/60",
+  FOLLOWING: "bg-cyan-500/15 text-cyan-300",
+  SELECTED: "bg-success/15 text-success",
+  DROPPED: "bg-danger/15 text-danger",
+  DRAFT: "bg-white/10 text-white/60",
+  ADOPTED: "bg-success/15 text-success",
+  DISCARDED: "bg-danger/15 text-danger",
+  PENDING: "bg-warning/15 text-warning",
+  PUBLISHED: "bg-success/15 text-success",
+  PLANNED: "bg-cyan-500/15 text-cyan-300",
+  SKIPPED: "bg-white/10 text-white/60",
+  QUEUED: "bg-warning/15 text-warning",
+  RUNNING: "bg-cyan-500/15 text-cyan-300",
+  SUCCESS: "bg-success/15 text-success",
+  FAILED: "bg-danger/15 text-danger",
+  UP: "bg-accent/15 text-accent",
+  STEADY: "bg-emerald-500/15 text-emerald-300",
+  DOWN: "bg-danger/15 text-danger",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -29,7 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function StatusBadge({ status }: { status: string }) {
-  const color = STATUS_COLORS[status] ?? "bg-gray-100 text-gray-700";
+  const color = STATUS_COLORS[status] ?? "bg-white/10 text-white/60";
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>
       {STATUS_LABELS[status] ?? status}
