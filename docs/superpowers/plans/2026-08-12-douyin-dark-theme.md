@@ -1436,7 +1436,7 @@ git commit -m "style: dark-theme scripts assets and tasks pages"
 
 **Files:** 无新增
 
-- [ ] **Step 1: 全量验证**
+- [x] **Step 1: 全量验证**
 
 Run: `npx vitest run`
 Expected: 4 文件 19 用例全部 PASS
@@ -1447,7 +1447,7 @@ Expected: 无 TS 错误
 Run: `npm run build`
 Expected: 构建成功
 
-- [ ] **Step 2: 启动 dev 冒烟**
+- [x] **Step 2: 启动 dev 冒烟**
 
 Run: `npm run dev`（若未在运行），浏览器打开 `http://localhost:3000`
 
@@ -1460,12 +1460,12 @@ Run: `npm run dev`（若未在运行），浏览器打开 `http://localhost:3000
 6. 空状态与加载骨架正常
 7. 原有交互全部可用（增删改查、上传、排期、生成脚本、爬虫任务）
 
-- [ ] **Step 3: 残留浅色类名检查（若 Step 2 发现）**
+- [x] **Step 3: 残留浅色类名检查（若 Step 2 发现）**
 
 Run: `Select-String -Path "src\app\**\*.tsx","src\components\**\*.tsx" -Pattern "bg-white|text-gray-|bg-gray-|text-blue-600" -Recurse | Select-Object Path,LineNumber,Line`
 Expected: 无匹配（若有，修复对应文件并重新 build）
 
-- [ ] **Step 4: 最终提交**
+- [x] **Step 4: 最终提交**
 
 ```bash
 git add -A
