@@ -2,9 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+}
+
+html {
+  @apply bg-page;
+}
+
 body {
-  @apply bg-page text-fg;
+  @apply min-h-screen bg-page text-fg antialiased;
   font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgb(254 44 85 / 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 0%, rgb(34 211 238 / 0.08), transparent 50%);
+  background-attachment: fixed;
 }
 
 /* 数字表格对齐 */
@@ -12,8 +24,18 @@ body {
   font-feature-settings: "tnum";
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* 深色滚动条 */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #2e2e36; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a3a44; }
+
+/* datetime-local 在深色下更可读 */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}

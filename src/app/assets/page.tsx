@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { Button, Card, Select } from "@/components/ui";
+import { EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/PageChrome";
+import { useToast } from "@/components/Toast";
+import { Button, Card, Input, Label, Select } from "@/components/ui";
 
 interface Asset {
   id: number; fileName: string; filePath: string; fileType: string; size: number;
@@ -14,7 +16,8 @@ interface Asset {
 }
 
 interface Schedule {
-  id: number; scheduledAt: string; publishStatus: string; publishUrl?: string | null;
+  id: number; assetId?: number; scheduledAt: string; publishStatus: string; publishUrl?: string | null;
+  asset?: { title?: string | null; fileName: string } | null;
 }
 
 function toLocalInputValue(d: Date): string {
@@ -45,136 +48,288 @@ function schedulePresets(): { value: string; label: string }[] {
   ];
 }
 
+function filePublicUrl(filePath: string) {
+  const name = filePath.split(/[/\\]/).pop();
+  return name ? `/api/files/${encodeURIComponent(name)}` : "";
+}
+
 export default function AssetsPage() {
+  const toast = useToast();
+  const presets = useMemo(() => schedulePresets(), []);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
   const [uploading, setUploading] = useState(false);
   const [del, setDel] = useState<Asset | null>(null);
+  const [scheduleDraft, setScheduleDraft] = useState<Record<number, string>>({});
+  const [publishTarget, setPublishTarget] = useState<Schedule | null>(null);
+  const [publishUrl, setPublishUrl] = useState("");
 
-  const load = useCallback(() => {
-    fetch("/api/assets").then((r) => r.json()).then(setAssets);
-    fetch("/api/schedules").then((r) => r.json()).then(setSchedules);
+  const load = useCallback(async () => {
+    setErr("");
+    try {
+      const [aRes, sRes] = await Promise.all([fetch("/api/assets"), fetch("/api/schedules")]);
+      if (!aRes.ok || !sRes.ok) throw new Error("加载失败");
+      setAssets(await aRes.json());
+      setSchedules(await sRes.json());
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     setUploading(true);
     const fd = new FormData();
     fd.append("file", file);
-    await fetch("/api/assets/upload", { method: "POST", body: fd });
+    try {
+      const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error ?? "上传失败", "danger");
+      } else {
+        toast("素材已上传", "success");
+        load();
+      }
+    } catch (err) {
+      toast(String(err), "danger");
+    }
     setUploading(false);
-    load();
   };
 
-  const createSchedule = async (assetId: number, dateStr: string) => {
-    await fetch("/api/schedules", {
+  const createSchedule = async (assetId: number) => {
+    const dateStr = scheduleDraft[assetId];
+    if (!dateStr) {
+      toast("请选择或填写排期时间", "danger");
+      return;
+    }
+    const res = await fetch("/api/schedules", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assetId, scheduledAt: dateStr }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast(data.error ?? "创建排期失败", "danger");
+      return;
+    }
+    toast("已添加排期", "success");
+    setScheduleDraft((prev) => ({ ...prev, [assetId]: "" }));
     load();
   };
 
-  const markPublished = async (s: Schedule) => {
-    const url = prompt("粘贴发布后的抖音链接（可留空）：", s.publishUrl ?? "");
-    if (url === null) return;
-    await fetch(`/api/schedules/${s.id}`, {
+  const confirmPublish = async () => {
+    if (!publishTarget) return;
+    const res = await fetch(`/api/schedules/${publishTarget.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         publishStatus: "PUBLISHED",
-        publishUrl: url || undefined,
+        publishUrl: publishUrl || undefined,
         publishedAt: new Date().toISOString(),
       }),
     });
+    if (!res.ok) {
+      toast("标记发布失败", "danger");
+      return;
+    }
+    toast("已标记为已发布", "success");
+    setPublishTarget(null);
+    setPublishUrl("");
     load();
   };
 
   const delAsset = async () => {
     if (!del) return;
-    await fetch(`/api/assets/${del.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/assets/${del.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast("删除失败", "danger");
+      return;
+    }
+    toast("素材已删除", "success");
     setDel(null);
     load();
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">素材与排期</h1>
-        <label className="cursor-pointer rounded-lg bg-gradient-to-r from-[#fe2c55] to-[#ff6b81] px-4 py-2 text-sm font-medium text-white transition-all hover:brightness-110">
-          {uploading ? "上传中..." : "上传素材"}
-          <input type="file" accept="video/*,image/*" className="hidden" onChange={upload} />
-        </label>
-      </div>
+      <PageHeader
+        title="素材与排期"
+        actions={
+          <label className={`cursor-pointer rounded-lg bg-gradient-to-r from-accent to-[#ff6b81] px-4 py-2 text-sm font-medium text-white transition-all hover:brightness-110 ${uploading ? "pointer-events-none opacity-50" : ""}`}>
+            {uploading ? "上传中..." : "上传素材"}
+            <input type="file" accept="video/*,image/*,.mp4,.mov,.webm,.jpg,.jpeg,.png,.gif,.webp" className="hidden" disabled={uploading} onChange={upload} />
+          </label>
+        }
+      />
+
+      {err && <ErrorBanner message={err} onRetry={load} />}
 
       <section>
         <h2 className="mb-2 font-semibold">素材库（{assets.length}）</h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {assets.map((a) => (
-            <Card key={a.id} hover className="p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <StatusBadge status={a.status} />
-                <button onClick={() => setDel(a)} className="text-xs text-white/40 hover:text-danger">删除</button>
-              </div>
-              <div className="text-sm font-medium text-fg">{a.title ?? a.fileName}</div>
-              <div className="text-xs text-white/50">
-                {a.product?.name ?? "未关联商品"} · {a.script ? `脚本#${a.script.id}` : "无脚本"}
-              </div>
-              <div className="mt-2 flex gap-1">
-                <Select id={`assetsel-${a.id}`} defaultValue="" className="text-xs">
-                  <option value="" disabled>+ 排期</option>
-                  {schedulePresets().map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </Select>
-                <Button variant="secondary" className="text-xs" onClick={() => {
-                  const sel = document.getElementById(`assetsel-${a.id}`) as HTMLSelectElement;
-                  if (sel.value) createSchedule(a.id, sel.value);
-                }}>确定</Button>
-              </div>
-              {a.schedules.length > 0 && (
-                <div className="mt-2 space-y-1 text-xs">
-                  {a.schedules.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between rounded bg-white/5 px-2 py-1">
-                      <span className="text-white/70">{new Date(s.scheduledAt).toLocaleString()}</span>
-                      <StatusBadge status={s.publishStatus} />
-                      {s.publishStatus === "PLANNED" && (
-                        <Button variant="ghost" className="text-xs" onClick={() => markPublished(s)}>发布</Button>
-                      )}
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-48" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {assets.map((a) => {
+              const url = filePublicUrl(a.filePath);
+              const draft = scheduleDraft[a.id] ?? "";
+              return (
+                <Card key={a.id} hover className="overflow-hidden p-0">
+                  <div className="relative aspect-video bg-black/40">
+                    {url && a.fileType === "IMAGE" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={url} alt={a.fileName} className="h-full w-full object-cover" />
+                    ) : url ? (
+                      <video src={url} className="h-full w-full object-cover" muted preload="metadata" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-white/40">无预览</div>
+                    )}
+                    <div className="absolute left-2 top-2"><StatusBadge status={a.status} /></div>
+                    <button onClick={() => setDel(a)} className="absolute right-2 top-2 rounded bg-black/50 px-2 py-0.5 text-xs text-white/80 hover:text-danger">删除</button>
+                  </div>
+                  <div className="space-y-2 p-3">
+                    <div className="truncate text-sm font-medium text-fg">{a.title ?? a.fileName}</div>
+                    <div className="truncate text-xs text-fg-2">
+                      {a.product?.name ?? "未关联商品"} · {a.script ? `脚本#${a.script.id}` : "无脚本"}
                     </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          ))}
-          {assets.length === 0 && <div className="col-span-full py-16 text-center text-white/40">暂无素材，点右上角上传</div>}
-        </div>
+                    <div className="space-y-1.5">
+                      <Select
+                        value={!draft ? "" : presets.some((p) => p.value === draft) ? draft : "__custom__"}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === "__custom__") {
+                            setScheduleDraft((prev) => ({ ...prev, [a.id]: toLocalInputValue(new Date()) }));
+                          } else {
+                            setScheduleDraft((prev) => ({ ...prev, [a.id]: v }));
+                          }
+                        }}
+                        className="w-full text-xs"
+                      >
+                        <option value="">+ 选择排期</option>
+                        {presets.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                        <option value="__custom__">自定义时间…</option>
+                      </Select>
+                      {draft && !presets.some((p) => p.value === draft) && (
+                        <Input
+                          type="datetime-local"
+                          value={draft}
+                          onChange={(e) => setScheduleDraft((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                          className="text-xs"
+                        />
+                      )}
+                      <Button variant="secondary" className="w-full text-xs" onClick={() => createSchedule(a.id)}>
+                        确定排期
+                      </Button>
+                    </div>
+                    {a.schedules.length > 0 && (
+                      <div className="space-y-1 text-xs">
+                        {a.schedules.map((s) => (
+                          <div key={s.id} className="flex items-center justify-between gap-1 rounded bg-white/5 px-2 py-1">
+                            <span className="tnum text-white/70">{new Date(s.scheduledAt).toLocaleString()}</span>
+                            <div className="flex items-center gap-1">
+                              <StatusBadge status={s.publishStatus} />
+                              {s.publishStatus === "PLANNED" && (
+                                <Button
+                                  variant="ghost"
+                                  className="text-xs"
+                                  onClick={() => {
+                                    setPublishTarget(s);
+                                    setPublishUrl(s.publishUrl ?? "");
+                                  }}
+                                >
+                                  发布
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+            {assets.length === 0 && (
+              <EmptyState title="暂无素材" description="支持视频与图片，上传后可安排发布排期" />
+            )}
+          </div>
+        )}
       </section>
 
       <section>
         <h2 className="mb-2 font-semibold">排期时间线</h2>
         <div className="space-y-2">
           {schedules.map((s) => {
-            const asset = assets.find((a) => a.schedules.some((x) => x.id === s.id));
+            const fromList =
+              assets.find((a) => a.id === s.assetId) ??
+              assets.find((a) => a.schedules.some((x) => x.id === s.id));
+            const title =
+              s.asset?.title ?? s.asset?.fileName ?? fromList?.title ?? fromList?.fileName ?? "素材已删除";
             return (
-              <div key={s.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-surface px-3 py-2 text-sm">
-                <div>
+              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/5 bg-surface px-3 py-2 text-sm">
+                <div className="min-w-0">
                   <span className="tnum font-medium text-fg">{new Date(s.scheduledAt).toLocaleString()}</span>
-                  <span className="ml-3 text-white/50">{asset?.title ?? asset?.fileName ?? "素材已删除"}</span>
+                  <span className="ml-3 text-fg-2">{title}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={s.publishStatus} />
-                  {s.publishUrl && <a href={s.publishUrl} target="_blank" className="text-xs text-cyan-300">链接</a>}
+                  {s.publishUrl && (
+                    <a href={s.publishUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-300 hover:underline">
+                      链接
+                    </a>
+                  )}
+                  {s.publishStatus === "PLANNED" && (
+                    <Button
+                      variant="ghost"
+                      className="text-xs"
+                      onClick={() => {
+                        setPublishTarget(s);
+                        setPublishUrl(s.publishUrl ?? "");
+                      }}
+                    >
+                      标记发布
+                    </Button>
+                  )}
                 </div>
               </div>
             );
           })}
-          {schedules.length === 0 && <div className="py-6 text-center text-sm text-white/40">暂无排期</div>}
+          {!loading && schedules.length === 0 && (
+            <div className="py-6 text-center text-sm text-fg-2">暂无排期</div>
+          )}
         </div>
       </section>
+
+      {publishTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setPublishTarget(null)}>
+          <div className="w-full max-w-md rounded-lg border border-white/10 bg-surface p-5 shadow-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <h3 className="mb-3 text-lg font-semibold">标记已发布</h3>
+            <Label htmlFor="publish-url">抖音链接（可留空）</Label>
+            <Input
+              id="publish-url"
+              value={publishUrl}
+              onChange={(e) => setPublishUrl(e.target.value)}
+              placeholder="https://www.douyin.com/..."
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setPublishTarget(null)}>取消</Button>
+              <Button onClick={confirmPublish}>确认发布</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={!!del}

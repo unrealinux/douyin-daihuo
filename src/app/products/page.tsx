@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/PageChrome";
+import { useToast } from "@/components/Toast";
 import { Button, Card, Input, Select } from "@/components/ui";
 
 interface Product {
@@ -16,31 +18,52 @@ interface Product {
 const EMPTY: Product[] = [];
 
 export default function ProductsPage() {
+  const toast = useToast();
   const [products, setProducts] = useState<Product[]>(EMPTY);
   const [status, setStatus] = useState("ALL");
+  const [keywordInput, setKeywordInput] = useState("");
   const [keyword, setKeyword] = useState("");
   const [sort, setSort] = useState("updatedAt");
   const [order, setOrder] = useState("desc");
   const [del, setDel] = useState<Product | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [batchMsg, setBatchMsg] = useState("");
   const [batchLoading, setBatchLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setKeyword(keywordInput.trim()), 300);
+    return () => window.clearTimeout(t);
+  }, [keywordInput]);
 
   const load = useCallback(async () => {
-    const q = new URLSearchParams();
-    if (status !== "ALL") q.set("status", status);
-    if (keyword) q.set("keyword", keyword);
-    q.set("sort", sort);
-    q.set("order", order);
-    const res = await fetch(`/api/products?${q.toString()}`);
-    if (res.ok) setProducts(await res.json());
+    setErr("");
+    try {
+      const q = new URLSearchParams();
+      if (status !== "ALL") q.set("status", status);
+      if (keyword) q.set("keyword", keyword);
+      q.set("sort", sort);
+      q.set("order", order);
+      const res = await fetch(`/api/products?${q.toString()}`);
+      if (!res.ok) throw new Error("加载商品失败");
+      setProducts(await res.json());
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
   }, [status, keyword, sort, order]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setLoading(true); load(); }, [load]);
 
   const confirmDelete = async () => {
     if (!del) return;
-    await fetch(`/api/products/${del.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/products/${del.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast("删除失败", "danger");
+      return;
+    }
+    toast("商品已删除", "success");
     setDel(null);
     setSelected((prev) => {
       const next = new Set(prev);
@@ -67,7 +90,6 @@ export default function ProductsPage() {
   const batchGenerate = async () => {
     if (selected.size === 0) return;
     setBatchLoading(true);
-    setBatchMsg("");
     try {
       const res = await fetch("/api/scripts/batch", {
         method: "POST",
@@ -80,30 +102,34 @@ export default function ProductsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setBatchMsg(data.error ?? "批量生成失败");
+        toast(data.error ?? "批量生成失败", "danger");
       } else {
         const ok = (data as Array<{ ok: boolean }>).filter((r) => r.ok).length;
         const fail = (data as Array<{ ok: boolean }>).length - ok;
-        setBatchMsg(`批量完成：成功 ${ok}，失败 ${fail}`);
+        toast(`批量完成：成功 ${ok}，失败 ${fail}`, fail ? "info" : "success");
         setSelected(new Set());
         load();
       }
     } catch (e) {
-      setBatchMsg(String(e));
+      toast(String(e), "danger");
     }
     setBatchLoading(false);
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">商品库</h1>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/products/import"><Button variant="secondary">CSV 导入</Button></Link>
-          <Link href="/products/tasks"><Button variant="secondary">爬虫任务</Button></Link>
-          <Link href="/products/new"><Button>新增商品</Button></Link>
-        </div>
-      </div>
+      <PageHeader
+        title="商品库"
+        actions={
+          <>
+            <Link href="/products/import"><Button variant="secondary">CSV 导入</Button></Link>
+            <Link href="/products/tasks"><Button variant="secondary">爬虫任务</Button></Link>
+            <Link href="/products/new"><Button>新增商品</Button></Link>
+          </>
+        }
+      />
+
+      {err && <ErrorBanner message={err} onRetry={load} />}
 
       <div className="flex flex-wrap items-center gap-2">
         <Select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -113,7 +139,12 @@ export default function ProductsPage() {
           <option value="SELECTED">已选</option>
           <option value="DROPPED">放弃</option>
         </Select>
-        <Input placeholder="搜索名称" value={keyword} onChange={(e) => setKeyword(e.target.value)} className="w-48" />
+        <Input
+          placeholder="搜索名称"
+          value={keywordInput}
+          onChange={(e) => setKeywordInput(e.target.value)}
+          className="w-full sm:w-48"
+        />
         <Select value={sort} onChange={(e) => setSort(e.target.value)}>
           <option value="updatedAt">更新时间</option>
           <option value="commissionRate">佣金率</option>
@@ -129,47 +160,53 @@ export default function ProductsPage() {
         <Button onClick={batchGenerate} disabled={selected.size === 0 || batchLoading}>
           {batchLoading ? "批量生成中..." : `批量生成${selected.size ? ` (${selected.size})` : ""}`}
         </Button>
-        {batchMsg && (
-          <span className="text-sm text-white/70">
-            {batchMsg}
-            {batchMsg.startsWith("批量完成") && (
-              <> · <Link href="/scripts" className="text-cyan-300 hover:underline">查看脚本</Link></>
-            )}
-          </span>
+        {selected.size > 0 && !batchLoading && (
+          <Link href="/scripts" className="text-sm text-cyan-300 hover:underline">查看脚本</Link>
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {products.map((p) => (
-          <Card key={p.id} hover className={`p-4 ${selected.has(p.id) ? "border-accent/50" : ""}`}>
-            <div className="flex items-start justify-between gap-2">
-              <label className="flex min-w-0 items-start gap-2">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={selected.has(p.id)}
-                  onChange={() => toggle(p.id)}
-                />
-                <Link href={`/products/${p.id}`} className="font-medium text-fg hover:text-accent">{p.name}</Link>
-              </label>
-              <StatusBadge status={p.status} />
-            </div>
-            <div className="tnum mt-2 space-y-1 text-sm text-white/60">
-              <div>类目: {p.category ?? "-"} · 价格: {p.price != null ? `¥${p.price}` : "-"}</div>
-              <div>佣金率: {p.commissionRate != null ? `${p.commissionRate}%` : "-"} · 近30天销量: {p.dailySales ?? "-"}</div>
-              <div>趋势: <StatusBadge status={p.trend} /> · 脚本 {p._count?.scriptIdeas ?? 0} · 素材 {p._count?.assets ?? 0}</div>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <Link href={`/products/${p.id}`}><Button variant="ghost">编辑</Button></Link>
-              <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="ghost">生成文案</Button></Link>
-              <Button variant="danger" onClick={() => setDel(p)}>删除</Button>
-            </div>
-          </Card>
-        ))}
-        {products.length === 0 && (
-          <div className="col-span-full py-16 text-center text-white/40">暂无商品</div>
-        )}
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-40" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {products.map((p) => (
+            <Card key={p.id} hover className={`p-4 ${selected.has(p.id) ? "border-accent/50" : ""}`}>
+              <div className="flex items-start justify-between gap-2">
+                <label className="flex min-w-0 items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1 accent-accent"
+                    checked={selected.has(p.id)}
+                    onChange={() => toggle(p.id)}
+                  />
+                  <Link href={`/products/${p.id}`} className="font-medium text-fg hover:text-accent">{p.name}</Link>
+                </label>
+                <StatusBadge status={p.status} />
+              </div>
+              <div className="tnum mt-2 space-y-1 text-sm text-fg-2">
+                <div>类目: {p.category ?? "-"} · 价格: {p.price != null ? `¥${p.price}` : "-"}</div>
+                <div>佣金率: {p.commissionRate != null ? `${p.commissionRate}%` : "-"} · 近30天销量: {p.dailySales ?? "-"}</div>
+                <div>趋势: <StatusBadge status={p.trend} /> · 脚本 {p._count?.scriptIdeas ?? 0} · 素材 {p._count?.assets ?? 0}</div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link href={`/products/${p.id}`}><Button variant="ghost">编辑</Button></Link>
+                <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="ghost">生成文案</Button></Link>
+                <Button variant="danger" onClick={() => setDel(p)}>删除</Button>
+              </div>
+            </Card>
+          ))}
+          {products.length === 0 && (
+            <EmptyState
+              title="暂无商品"
+              description="手动新增、CSV 导入或用爬虫抓取"
+              actionHref="/products/new"
+              actionLabel="新增商品"
+            />
+          )}
+        </div>
+      )}
 
       <ConfirmDialog
         open={!!del}

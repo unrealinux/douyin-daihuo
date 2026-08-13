@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
+import { useToast } from "@/components/Toast";
 import { Button, Card, Input, Label, Select } from "@/components/ui";
 
 interface Product {
@@ -15,9 +16,11 @@ interface Product {
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const toast = useToast();
   const [p, setP] = useState<Product | null>(null);
   const [form, setForm] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch(`/api/products/${id}`)
@@ -44,6 +47,7 @@ export default function ProductDetailPage() {
   const set = (k: string, v: string) => setForm({ ...form, [k]: v });
 
   const save = async () => {
+    setSaving(true);
     const res = await fetch(`/api/products/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -57,14 +61,17 @@ export default function ProductDetailPage() {
     });
     if (res.ok) {
       const updated = await res.json();
-      // PATCH 不带关联，保留当前页已加载的 scriptIdeas
       setP({ ...updated, scriptIdeas: updated.scriptIdeas ?? p.scriptIdeas ?? [] });
       setForm({
         name: updated.name, url: updated.url ?? "", category: updated.category ?? "",
         price: updated.price ?? "", commissionRate: updated.commissionRate ?? "",
         dailySales: updated.dailySales ?? "", status: updated.status, trend: updated.trend, note: updated.note ?? "",
       });
+      toast("已保存", "success");
+    } else {
+      toast("保存失败", "danger");
     }
+    setSaving(false);
   };
 
   return (
@@ -78,7 +85,7 @@ export default function ProductDetailPage() {
         <div><Label>商品名称</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
         <div><Label>链接</Label><Input value={form.url} onChange={(e) => set("url", e.target.value)} /></div>
         <div><Label>类目</Label><Input value={form.category} onChange={(e) => set("category", e.target.value)} /></div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div><Label>价格</Label><Input type="number" value={form.price} onChange={(e) => set("price", e.target.value)} /></div>
           <div><Label>佣金率 %</Label><Input type="number" value={form.commissionRate} onChange={(e) => set("commissionRate", e.target.value)} /></div>
           <div><Label>销量</Label><Input type="number" value={form.dailySales} onChange={(e) => set("dailySales", e.target.value)} /></div>
@@ -104,7 +111,7 @@ export default function ProductDetailPage() {
         </div>
         <div><Label>备注</Label><Input value={form.note} onChange={(e) => set("note", e.target.value)} /></div>
         <div className="flex gap-2">
-          <Button onClick={save}>保存</Button>
+          <Button onClick={save} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
           <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="secondary">生成文案</Button></Link>
         </div>
       </Card>

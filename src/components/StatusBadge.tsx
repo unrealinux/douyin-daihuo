@@ -15,7 +15,7 @@ const STATUS_COLORS: Record<string, string> = {
   SUCCESS: "bg-success/15 text-success",
   FAILED: "bg-danger/15 text-danger",
   UP: "bg-accent/15 text-accent",
-  STEADY: "bg-emerald-500/15 text-emerald-300",
+  STEADY: "bg-success/15 text-success",
   DOWN: "bg-danger/15 text-danger",
 };
 

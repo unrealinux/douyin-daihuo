@@ -3,9 +3,9 @@ export function Button({ children, onClick, variant = "primary", className = "",
   className?: string; type?: "button" | "submit"; disabled?: boolean;
 }) {
   const styles = {
-    primary: "bg-gradient-to-r from-[#fe2c55] to-[#ff6b81] text-white hover:brightness-110",
+    primary: "bg-gradient-to-r from-accent to-[#ff6b81] text-white hover:brightness-110",
     secondary: "bg-transparent border border-white/10 text-white hover:bg-white/10",
-    danger: "bg-red-500/90 text-white hover:bg-red-500",
+    danger: "bg-danger/90 text-white hover:bg-danger",
     ghost: "bg-transparent text-white/70 hover:text-white hover:bg-white/5",
   };
   return (
@@ -13,7 +13,7 @@ export function Button({ children, onClick, variant = "primary", className = "",
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-150 focus-visible:ring-2 ring-accent/50 ${styles[variant]} ${className} ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+      className={`rounded-lg px-3 py-1.5 text-sm font-medium outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-page ${styles[variant]} ${className} ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
     >
       {children}
     </button>
@@ -47,8 +47,12 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
   );
 }
 
-export function Label({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1 block text-sm text-white/60">{children}</label>;
+export function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className="mb-1 block text-sm text-fg-2">
+      {children}
+    </label>
+  );
 }
 
 export function Card({ children, className = "", hover = false }: {
