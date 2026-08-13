@@ -120,9 +120,10 @@ export default function ProductsPage() {
     <div className="space-y-4">
       <PageHeader
         title="商品库"
+        description="筛选、跟进，再批量生成口播文案"
         actions={
           <>
-            <Link href="/products/import"><Button variant="secondary">CSV 导入</Button></Link>
+            <Link href="/products/import"><Button variant="ghost">CSV 导入</Button></Link>
             <Link href="/products/tasks"><Button variant="secondary">爬虫任务</Button></Link>
             <Link href="/products/new"><Button>新增商品</Button></Link>
           </>
@@ -161,7 +162,7 @@ export default function ProductsPage() {
           {batchLoading ? "批量生成中..." : `批量生成${selected.size ? ` (${selected.size})` : ""}`}
         </Button>
         {selected.size > 0 && !batchLoading && (
-          <Link href="/scripts" className="text-sm text-cyan-300 hover:underline">查看脚本</Link>
+          <Link href="/scripts" className="text-sm text-fg-2 hover:text-accent">查看脚本</Link>
         )}
       </div>
 
@@ -181,19 +182,24 @@ export default function ProductsPage() {
                     checked={selected.has(p.id)}
                     onChange={() => toggle(p.id)}
                   />
-                  <Link href={`/products/${p.id}`} className="font-medium text-fg hover:text-accent">{p.name}</Link>
+                  <Link href={`/products/${p.id}`} className="text-[15px] font-medium text-fg hover:text-accent">{p.name}</Link>
                 </label>
                 <StatusBadge status={p.status} />
               </div>
-              <div className="tnum mt-2 space-y-1 text-sm text-fg-2">
-                <div>类目: {p.category ?? "-"} · 价格: {p.price != null ? `¥${p.price}` : "-"}</div>
-                <div>佣金率: {p.commissionRate != null ? `${p.commissionRate}%` : "-"} · 近30天销量: {p.dailySales ?? "-"}</div>
-                <div>趋势: <StatusBadge status={p.trend} /> · 脚本 {p._count?.scriptIdeas ?? 0} · 素材 {p._count?.assets ?? 0}</div>
+              <div className="tnum mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-fg-2">
+                <div>类目 {p.category ?? "-"}</div>
+                <div>价格 {p.price != null ? `¥${p.price}` : "-"}</div>
+                <div>佣金 {p.commissionRate != null ? `${p.commissionRate}%` : "-"}</div>
+                <div>近30天 {p.dailySales ?? "-"}</div>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2 flex items-center gap-2 text-xs text-fg-2">
+                <StatusBadge status={p.trend} />
+                <span className="tnum">脚本 {p._count?.scriptIdeas ?? 0} · 素材 {p._count?.assets ?? 0}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Link href={`/scripts/generate?productId=${p.id}`}><Button>生成文案</Button></Link>
                 <Link href={`/products/${p.id}`}><Button variant="ghost">编辑</Button></Link>
-                <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="ghost">生成文案</Button></Link>
-                <Button variant="danger" onClick={() => setDel(p)}>删除</Button>
+                <Button variant="ghost" className="ml-auto text-danger/80 hover:text-danger" onClick={() => setDel(p)}>删除</Button>
               </div>
             </Card>
           ))}

@@ -5,6 +5,7 @@ import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/PageChrome";
 import { useToast } from "@/components/Toast";
+import Modal from "@/components/Modal";
 import { Button, Card, Input, Label, Select } from "@/components/ui";
 
 interface Asset {
@@ -203,13 +204,14 @@ export default function AssetsPage() {
     <div className="space-y-6">
       <PageHeader
         title="素材与排期"
+        description="上传、关联商品/脚本，再安排发布时间"
         actions={<Button onClick={() => setUploadOpen(true)}>上传素材</Button>}
       />
 
       {err && <ErrorBanner message={err} onRetry={load} />}
 
       <section>
-        <h2 className="mb-2 font-semibold">素材库（{assets.length}）</h2>
+        <h2 className="mb-2 text-sm font-medium text-fg-2">素材库（{assets.length}）</h2>
         {loading ? (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
             {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-48" />)}
@@ -234,7 +236,7 @@ export default function AssetsPage() {
                     <button onClick={() => setDel(a)} className="absolute right-2 top-2 rounded bg-black/50 px-2 py-0.5 text-xs text-white/80 hover:text-danger">删除</button>
                   </div>
                   <div className="space-y-2 p-3">
-                    <div className="truncate text-sm font-medium text-fg">{a.title ?? a.fileName}</div>
+                    <div className="truncate text-[15px] font-medium text-fg">{a.title ?? a.fileName}</div>
                     <Select
                       value={a.product?.id ? String(a.product.id) : ""}
                       onChange={(e) => linkAsset(a.id, "productId", e.target.value)}
@@ -282,7 +284,7 @@ export default function AssetsPage() {
                           className="text-xs"
                         />
                       )}
-                      <Button variant="secondary" className="w-full text-xs" onClick={() => createSchedule(a.id)}>
+                      <Button className="w-full text-xs" onClick={() => createSchedule(a.id)}>
                         确定排期
                       </Button>
                     </div>
@@ -322,7 +324,7 @@ export default function AssetsPage() {
       </section>
 
       <section>
-        <h2 className="mb-2 font-semibold">排期时间线</h2>
+        <h2 className="mb-2 text-sm font-medium text-fg-2">排期时间线</h2>
         <div className="space-y-2">
           {schedules.map((s) => {
             const fromList =
@@ -365,71 +367,75 @@ export default function AssetsPage() {
         </div>
       </section>
 
-      {uploadOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => !uploading && setUploadOpen(false)}>
-          <div className="w-full max-w-md space-y-4 rounded-lg border border-white/10 bg-surface p-5 shadow-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-            <h3 className="text-lg font-semibold">上传素材</h3>
-            <label className="block cursor-pointer rounded-lg border border-dashed border-white/20 bg-white/5 px-4 py-6 text-center text-sm text-fg-2 hover:border-accent">
-              {uploadFile ? <span className="text-fg">{uploadFile.name}</span> : "点击选择视频或图片"}
-              <input
-                type="file"
-                accept="video/*,image/*,.mp4,.mov,.webm,.jpg,.jpeg,.png,.gif,.webp"
-                className="hidden"
-                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            <div>
-              <Label htmlFor="up-product">关联商品（可选）</Label>
-              <Select
-                id="up-product"
-                value={uploadProductId}
-                onChange={(e) => {
-                  setUploadProductId(e.target.value);
-                  setUploadScriptId("");
-                }}
-                className="w-full"
-              >
-                <option value="">不关联</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="up-script">关联脚本（可选）</Label>
-              <Select id="up-script" value={uploadScriptId} onChange={(e) => setUploadScriptId(e.target.value)} className="w-full">
-                <option value="">不关联</option>
-                {filteredScripts.map((s) => (
-                  <option key={s.id} value={s.id}>{s.title ?? `脚本 #${s.id}`}</option>
-                ))}
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setUploadOpen(false)} disabled={uploading}>取消</Button>
-              <Button onClick={submitUpload} disabled={uploading || !uploadFile}>{uploading ? "上传中..." : "上传"}</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {publishTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setPublishTarget(null)}>
-          <div className="w-full max-w-md rounded-lg border border-white/10 bg-surface p-5 shadow-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-            <h3 className="mb-3 text-lg font-semibold">标记已发布</h3>
-            <Label htmlFor="publish-url">抖音链接（可留空）</Label>
-            <Input
-              id="publish-url"
-              value={publishUrl}
-              onChange={(e) => setPublishUrl(e.target.value)}
-              placeholder="https://www.douyin.com/..."
+      <Modal
+        open={uploadOpen}
+        title="上传素材"
+        onClose={() => { if (!uploading) setUploadOpen(false); }}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setUploadOpen(false)} disabled={uploading}>取消</Button>
+            <Button onClick={submitUpload} disabled={uploading || !uploadFile}>{uploading ? "上传中..." : "上传"}</Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <label className="block cursor-pointer rounded-lg border border-dashed border-white/20 bg-white/5 px-4 py-6 text-center text-sm text-fg-2 transition-colors duration-150 hover:border-accent">
+            {uploadFile ? <span className="text-fg">{uploadFile.name}</span> : "点击选择视频或图片"}
+            <input
+              type="file"
+              accept="video/*,image/*,.mp4,.mov,.webm,.jpg,.jpeg,.png,.gif,.webp"
+              className="hidden"
+              onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
             />
-            <div className="mt-4 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setPublishTarget(null)}>取消</Button>
-              <Button onClick={confirmPublish}>确认发布</Button>
-            </div>
+          </label>
+          <div>
+            <Label htmlFor="up-product">关联商品（可选）</Label>
+            <Select
+              id="up-product"
+              value={uploadProductId}
+              onChange={(e) => {
+                setUploadProductId(e.target.value);
+                setUploadScriptId("");
+              }}
+              className="w-full"
+            >
+              <option value="">不关联</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="up-script">关联脚本（可选）</Label>
+            <Select id="up-script" value={uploadScriptId} onChange={(e) => setUploadScriptId(e.target.value)} className="w-full">
+              <option value="">不关联</option>
+              {filteredScripts.map((s) => (
+                <option key={s.id} value={s.id}>{s.title ?? `脚本 #${s.id}`}</option>
+              ))}
+            </Select>
           </div>
         </div>
-      )}
+      </Modal>
+
+      <Modal
+        open={!!publishTarget}
+        title="标记已发布"
+        onClose={() => setPublishTarget(null)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPublishTarget(null)}>取消</Button>
+            <Button onClick={confirmPublish}>确认发布</Button>
+          </>
+        }
+      >
+        <Label htmlFor="publish-url">抖音链接（可留空）</Label>
+        <Input
+          id="publish-url"
+          value={publishUrl}
+          onChange={(e) => setPublishUrl(e.target.value)}
+          placeholder="https://www.douyin.com/..."
+        />
+      </Modal>
 
       <ConfirmDialog
         open={!!del}

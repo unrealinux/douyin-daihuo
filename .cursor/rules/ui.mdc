@@ -1,0 +1,27 @@
+---
+description: Douyin helper UI craft — hierarchy, tokens, shared Modal, anti-patterns
+globs: src/app/**/*.tsx,src/components/**/*.tsx
+alwaysApply: false
+---
+
+# UI craft
+
+Follow `.cursor/skills/douyin-ui-craft/SKILL.md` when changing these files.
+
+- One primary CTA per screen/card. Ghost/danger recede.
+- Type: page `text-2xl font-semibold`; card title `text-[15px] font-medium`; meta `tnum text-xs text-fg-2`.
+- Overlays must use `@/components/Modal`. No new `fixed inset-0` copies.
+- Accent on primary/active only. Cyan for links only.
+- Reuse `PageHeader`, `EmptyState`, `ErrorBanner`, `Toast`, `Card`, `Button`.
+- Do not change API contracts in a visual pass.
+
+```tsx
+// ❌ equal-weight actions
+<Button variant="ghost">编辑</Button>
+<Button variant="ghost">生成文案</Button>
+<Button variant="danger">删除</Button>
+
+// ✅ one primary
+<Link href={gen}><Button>生成文案</Button></Link>
+<Link href={edit}><Button variant="ghost">编辑</Button></Link>
+```

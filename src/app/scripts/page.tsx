@@ -7,6 +7,7 @@ import StatusBadge from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { EmptyState, ErrorBanner, PageHeader } from "@/components/PageChrome";
 import { useToast } from "@/components/Toast";
+import Modal from "@/components/Modal";
 import { Button, Card } from "@/components/ui";
 import { formatScriptPlaintext, parseHashtagsJson } from "@/services/scriptParser";
 
@@ -79,6 +80,7 @@ function ScriptsList() {
     <div className="space-y-4">
       <PageHeader
         title="脚本文案"
+        description="钩子、口播和分镜，复制后去拍"
         actions={<Link href="/scripts/generate"><Button>生成脚本</Button></Link>}
       />
 
@@ -86,23 +88,25 @@ function ScriptsList() {
 
       <div className="space-y-3">
         {scripts.map((s) => (
-          <Card key={s.id} className={`p-4 ${deepId === String(s.id) ? "border-accent/40" : ""}`}>
-            <div className="flex items-center justify-between">
-              <div className="font-medium text-fg">
-                {s.title ?? `脚本 #${s.id}`}
-                {s.product && <span className="ml-2 text-sm text-white/60">· {s.product.name}</span>}
+          <Card key={s.id} hover className={`p-4 ${deepId === String(s.id) ? "border-accent/40" : ""}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="truncate text-[15px] font-medium text-fg">
+                  {s.title ?? `脚本 #${s.id}`}
+                </div>
+                {s.product && <div className="mt-0.5 truncate text-xs text-fg-2">{s.product.name}</div>}
               </div>
               <StatusBadge status={s.status} />
             </div>
-            <div className="tnum mt-1 text-sm text-white/60">
+            <div className="tnum mt-1 text-xs text-fg-2">
               {s.style} · {s.durationSec}s · {s.llmModel ?? ""} · {new Date(s.createdAt).toLocaleString()}
             </div>
-            <div className="mt-2 line-clamp-2 text-sm text-white/70">{s.body}</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button variant="ghost" onClick={() => setOpen(s)}>查看</Button>
+            <div className="mt-2 line-clamp-2 text-sm text-white/80">{s.body}</div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button onClick={() => setOpen(s)}>查看</Button>
               <Button variant="ghost" onClick={() => copyScript(s)}>复制</Button>
               <Button variant="ghost" onClick={() => { setStatus(s, "ADOPTED"); }}>采用</Button>
-              <Button variant="danger" onClick={() => setDel(s)}>删除</Button>
+              <Button variant="ghost" className="ml-auto text-danger/80 hover:text-danger" onClick={() => setDel(s)}>删除</Button>
             </div>
           </Card>
         ))}
@@ -111,28 +115,45 @@ function ScriptsList() {
         )}
       </div>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setOpen(null)}>
-          <div className="max-h-[85vh] w-full max-w-xl overflow-auto rounded-lg border border-white/10 bg-surface p-5 shadow-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-fg">{open.title ?? `脚本 #${open.id}`}</h3>
-              <button onClick={() => setOpen(null)} className="text-white/40 hover:text-white">×</button>
+      <Modal
+        open={!!open}
+        title={open?.title ?? (open ? `脚本 #${open.id}` : "脚本")}
+        onClose={() => setOpen(null)}
+        wide
+        footer={open && (
+          <>
+            <Button variant="ghost" className="mr-auto text-danger/80 hover:text-danger" onClick={() => { setDel(open); setOpen(null); }}>删除</Button>
+            <Button variant="ghost" onClick={() => setStatus(open, "DISCARDED")}>废弃</Button>
+            <Button variant="secondary" onClick={() => setStatus(open, "ADOPTED")}>采用</Button>
+            <Button onClick={() => copyScript(open)}>复制全文</Button>
+          </>
+        )}
+      >
+        {open && (
+          <div className="space-y-4 text-sm text-white/80">
+            <div>
+              <div className="text-xs text-fg-2">黄金3秒钩子</div>
+              <p className="mt-1 text-fg">{open.hook ?? "-"}</p>
             </div>
-            <div className="space-y-3 text-sm text-white/80">
-              <div><b className="text-fg">黄金3秒钩子：</b>{open.hook ?? "-"}</div>
-              <div><b className="text-fg">口播正文：</b><p className="whitespace-pre-wrap">{open.body}</p></div>
-              {open.shotScript && <div><b className="text-fg">分镜脚本：</b><p className="whitespace-pre-wrap">{open.shotScript}</p></div>}
-              {open.hashtags && <div><b className="text-fg">标签：</b>{parseHashtagsJson(open.hashtags).join(" ")}</div>}
+            <div>
+              <div className="text-xs text-fg-2">口播正文</div>
+              <p className="mt-1 whitespace-pre-wrap">{open.body}</p>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => copyScript(open)}>复制全文</Button>
-              <Button variant="secondary" onClick={() => setStatus(open, "ADOPTED")}>标记采用</Button>
-              <Button variant="secondary" onClick={() => setStatus(open, "DISCARDED")}>标记废弃</Button>
-              <Button variant="danger" onClick={() => { setDel(open); setOpen(null); }}>删除</Button>
-            </div>
+            {open.shotScript && (
+              <div>
+                <div className="text-xs text-fg-2">分镜脚本</div>
+                <p className="mt-1 whitespace-pre-wrap">{open.shotScript}</p>
+              </div>
+            )}
+            {open.hashtags && (
+              <div>
+                <div className="text-xs text-fg-2">标签</div>
+                <p className="mt-1">{parseHashtagsJson(open.hashtags).join(" ")}</p>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       <ConfirmDialog
         open={!!del}

@@ -60,7 +60,7 @@ export function Card({ children, className = "", hover = false }: {
 }) {
   return (
     <div
-      className={`rounded-lg border border-white/5 bg-surface shadow-card transition-all ${hover ? "hover:border-white/10 hover:shadow-lg" : ""} ${className}`}
+      className={`rounded-lg border border-white/5 bg-surface shadow-card transition-all duration-150 ${hover ? "hover:border-white/10 hover:shadow-lg" : ""} ${className}`}
     >
       {children}
     </div>
