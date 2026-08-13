@@ -93,6 +93,10 @@ export default function TasksPage() {
 
       {err && <ErrorBanner message={err} onRetry={load} />}
 
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+        当前抓取是<strong className="font-medium">网页搜索兜底</strong>（百度关键词 / 打开链接取标题），不是抖音精选联盟商品库。结果请人工核对，正式选品请用手动录入或 CSV 导入。
+      </div>
+
       {!pwOk && (
         <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
           Playwright 浏览器未安装。运行 <code className="rounded bg-black/30 px-1">npx playwright install chromium</code> 后重启。此问题不影响其他功能。
@@ -138,7 +142,7 @@ export default function TasksPage() {
             </div>
           ))}
           {tasks.length === 0 && !err && (
-            <EmptyState title="暂无任务" description="输入关键词或商品链接开始抓取" />
+            <EmptyState title="暂无任务" description="关键词会走网页搜索兜底；精确选品请用手动/CSV" />
           )}
         </div>
       </section>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseScriptJson } from "@/services/scriptParser";
+import { parseScriptJson, formatScriptPlaintext, parseHashtagsJson } from "@/services/scriptParser";
 
 describe("scriptParser", () => {
   it("parses valid json", () => {
@@ -32,5 +32,23 @@ describe("scriptParser", () => {
 
   it("throws on no json", () => {
     expect(() => parseScriptJson("nothing here")).toThrow();
+  });
+
+  it("parseHashtagsJson reads json array", () => {
+    expect(parseHashtagsJson(JSON.stringify(["#a", "#b"]))).toEqual(["#a", "#b"]);
+  });
+
+  it("formatScriptPlaintext includes hook body and tags", () => {
+    const text = formatScriptPlaintext({
+      title: "标题",
+      hook: "钩子",
+      body: "正文",
+      shotScript: "分镜",
+      hashtags: JSON.stringify(["#tag"]),
+    });
+    expect(text).toContain("标题：标题");
+    expect(text).toContain("钩子");
+    expect(text).toContain("正文");
+    expect(text).toContain("#tag");
   });
 });

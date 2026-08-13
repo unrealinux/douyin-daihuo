@@ -19,22 +19,29 @@ export interface GenerateInput {
 export async function generateScript(input: GenerateInput) {
   const [client, cfg] = await Promise.all([getLlmClient(), getLlmConfig()]);
   const prompt = buildPrompt(input, STYLE_LABEL[input.style]);
+  const messages = [
+    {
+      role: "system" as const,
+      content:
+        "你是抖音带货短视频脚本专家。根据用户提供的商品信息生成带货脚本，只输出 JSON，不要输出其他内容。JSON 字段：title(标题), hook(黄金3秒钩子), body(口播正文), shotScript(分镜脚本,用\n分隔每行), hashtags(话题标签数组,每个以#开头), durationSec(数字)。",
+    },
+    { role: "user" as const, content: prompt },
+  ];
 
-  const res = await client.chat.completions.create({
-    model: cfg.model,
-    temperature: cfg.temperature,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content:
-          "你是抖音带货短视频脚本专家。根据用户提供的商品信息生成带货脚本，只输出 JSON，不要输出其他内容。JSON 字段：title(标题), hook(黄金3秒钩子), body(口播正文), shotScript(分镜脚本,用\n分隔每行), hashtags(话题标签数组,每个以#开头), durationSec(数字)。",
-      },
-      { role: "user", content: prompt },
-    ],
-  });
+  const call = () =>
+    client.chat.completions.create({
+      model: cfg.model,
+      temperature: cfg.temperature,
+      response_format: { type: "json_object" },
+      messages,
+    });
 
-  const raw = res.choices[0]?.message?.content ?? "";
+  let raw = "";
+  try {
+    raw = (await call()).choices[0]?.message?.content ?? "";
+  } catch {
+    raw = (await call()).choices[0]?.message?.content ?? "";
+  }
   const parsed = parseScriptJson(raw);
 
   return prisma.scriptIdea.create({

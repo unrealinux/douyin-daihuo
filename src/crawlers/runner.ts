@@ -89,7 +89,7 @@ async function main() {
         where: { id: taskId },
         data: {
           status: ScrapeTaskStatus.FAILED,
-          message: "未抓取到数据。抖音页面结构变动或风控拦截，请改用手动录入或 CSV 导入。",
+          message: "未抓取到数据。当前为网页搜索兜底（非抖音商品库），请改用手动录入或 CSV 导入。",
           finishedAt: new Date(),
         },
       });
@@ -114,7 +114,7 @@ async function main() {
         where: { id: taskId },
         data: {
           status: ScrapeTaskStatus.SUCCESS,
-          message: `成功抓取 ${rows.length} 条并入库`,
+          message: `已入库 ${rows.length} 条（网页搜索兜底，标题可能不是真实商品，请核对后使用）`,
           finishedAt: new Date(),
         },
       }),

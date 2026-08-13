@@ -7,6 +7,34 @@ export interface GeneratedScript {
   durationSec: number;
 }
 
+export function parseHashtagsJson(raw?: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return raw.split(/\s+/).filter(Boolean);
+  }
+}
+
+export function formatScriptPlaintext(s: {
+  title?: string | null;
+  hook?: string | null;
+  body: string;
+  shotScript?: string | null;
+  hashtags?: string | null;
+}): string {
+  const tags = parseHashtagsJson(s.hashtags);
+  const parts = [
+    s.title ? `标题：${s.title}` : null,
+    s.hook ? `黄金3秒钩子：${s.hook}` : null,
+    `口播正文：\n${s.body}`,
+    s.shotScript ? `分镜脚本：\n${s.shotScript}` : null,
+    tags.length ? `标签：${tags.join(" ")}` : null,
+  ];
+  return parts.filter(Boolean).join("\n\n");
+}
+
 export function parseScriptJson(raw: string): GeneratedScript {
   const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
   let obj: Record<string, unknown>;

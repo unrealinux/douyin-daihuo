@@ -20,6 +20,9 @@ interface Schedule {
   asset?: { title?: string | null; fileName: string } | null;
 }
 
+interface ProductOpt { id: number; name: string }
+interface ScriptOpt { id: number; title?: string | null; product?: { id: number; name: string } | null }
+
 function toLocalInputValue(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -58,9 +61,15 @@ export default function AssetsPage() {
   const presets = useMemo(() => schedulePresets(), []);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [products, setProducts] = useState<ProductOpt[]>([]);
+  const [scripts, setScripts] = useState<ScriptOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadProductId, setUploadProductId] = useState("");
+  const [uploadScriptId, setUploadScriptId] = useState("");
   const [del, setDel] = useState<Asset | null>(null);
   const [scheduleDraft, setScheduleDraft] = useState<Record<number, string>>({});
   const [publishTarget, setPublishTarget] = useState<Schedule | null>(null);
@@ -69,10 +78,17 @@ export default function AssetsPage() {
   const load = useCallback(async () => {
     setErr("");
     try {
-      const [aRes, sRes] = await Promise.all([fetch("/api/assets"), fetch("/api/schedules")]);
+      const [aRes, sRes, pRes, scRes] = await Promise.all([
+        fetch("/api/assets"),
+        fetch("/api/schedules"),
+        fetch("/api/products?status=ALL"),
+        fetch("/api/scripts"),
+      ]);
       if (!aRes.ok || !sRes.ok) throw new Error("加载失败");
       setAssets(await aRes.json());
       setSchedules(await sRes.json());
+      if (pRes.ok) setProducts(await pRes.json());
+      if (scRes.ok) setScripts(await scRes.json());
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -82,13 +98,20 @@ export default function AssetsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  const filteredScripts = uploadProductId
+    ? scripts.filter((s) => !s.product || String(s.product.id) === uploadProductId)
+    : scripts;
+
+  const submitUpload = async () => {
+    if (!uploadFile) {
+      toast("请选择文件", "danger");
+      return;
+    }
     setUploading(true);
     const fd = new FormData();
-    fd.append("file", file);
+    fd.append("file", uploadFile);
+    if (uploadProductId) fd.append("productId", uploadProductId);
+    if (uploadScriptId) fd.append("scriptId", uploadScriptId);
     try {
       const res = await fetch("/api/assets/upload", { method: "POST", body: fd });
       const data = await res.json();
@@ -96,12 +119,30 @@ export default function AssetsPage() {
         toast(data.error ?? "上传失败", "danger");
       } else {
         toast("素材已上传", "success");
+        setUploadOpen(false);
+        setUploadFile(null);
+        setUploadProductId("");
+        setUploadScriptId("");
         load();
       }
-    } catch (err) {
-      toast(String(err), "danger");
+    } catch (e) {
+      toast(String(e), "danger");
     }
     setUploading(false);
+  };
+
+  const linkAsset = async (id: number, field: "productId" | "scriptId", value: string) => {
+    const body = { [field]: value === "" ? null : Number(value) };
+    const res = await fetch(`/api/assets/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      toast("关联失败", "danger");
+      return;
+    }
+    load();
   };
 
   const createSchedule = async (assetId: number) => {
@@ -162,12 +203,7 @@ export default function AssetsPage() {
     <div className="space-y-6">
       <PageHeader
         title="素材与排期"
-        actions={
-          <label className={`cursor-pointer rounded-lg bg-gradient-to-r from-accent to-[#ff6b81] px-4 py-2 text-sm font-medium text-white transition-all hover:brightness-110 ${uploading ? "pointer-events-none opacity-50" : ""}`}>
-            {uploading ? "上传中..." : "上传素材"}
-            <input type="file" accept="video/*,image/*,.mp4,.mov,.webm,.jpg,.jpeg,.png,.gif,.webp" className="hidden" disabled={uploading} onChange={upload} />
-          </label>
-        }
+        actions={<Button onClick={() => setUploadOpen(true)}>上传素材</Button>}
       />
 
       {err && <ErrorBanner message={err} onRetry={load} />}
@@ -199,9 +235,26 @@ export default function AssetsPage() {
                   </div>
                   <div className="space-y-2 p-3">
                     <div className="truncate text-sm font-medium text-fg">{a.title ?? a.fileName}</div>
-                    <div className="truncate text-xs text-fg-2">
-                      {a.product?.name ?? "未关联商品"} · {a.script ? `脚本#${a.script.id}` : "无脚本"}
-                    </div>
+                    <Select
+                      value={a.product?.id ? String(a.product.id) : ""}
+                      onChange={(e) => linkAsset(a.id, "productId", e.target.value)}
+                      className="w-full text-xs"
+                    >
+                      <option value="">未关联商品</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </Select>
+                    <Select
+                      value={a.script?.id ? String(a.script.id) : ""}
+                      onChange={(e) => linkAsset(a.id, "scriptId", e.target.value)}
+                      className="w-full text-xs"
+                    >
+                      <option value="">未关联脚本</option>
+                      {scripts.map((s) => (
+                        <option key={s.id} value={s.id}>{s.title ?? `脚本 #${s.id}`}</option>
+                      ))}
+                    </Select>
                     <div className="space-y-1.5">
                       <Select
                         value={!draft ? "" : presets.some((p) => p.value === draft) ? draft : "__custom__"}
@@ -262,7 +315,7 @@ export default function AssetsPage() {
               );
             })}
             {assets.length === 0 && (
-              <EmptyState title="暂无素材" description="支持视频与图片，上传后可安排发布排期" />
+              <EmptyState title="暂无素材" description="上传时可关联商品和脚本，再安排发布排期" />
             )}
           </div>
         )}
@@ -311,6 +364,53 @@ export default function AssetsPage() {
           )}
         </div>
       </section>
+
+      {uploadOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => !uploading && setUploadOpen(false)}>
+          <div className="w-full max-w-md space-y-4 rounded-lg border border-white/10 bg-surface p-5 shadow-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <h3 className="text-lg font-semibold">上传素材</h3>
+            <label className="block cursor-pointer rounded-lg border border-dashed border-white/20 bg-white/5 px-4 py-6 text-center text-sm text-fg-2 hover:border-accent">
+              {uploadFile ? <span className="text-fg">{uploadFile.name}</span> : "点击选择视频或图片"}
+              <input
+                type="file"
+                accept="video/*,image/*,.mp4,.mov,.webm,.jpg,.jpeg,.png,.gif,.webp"
+                className="hidden"
+                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            <div>
+              <Label htmlFor="up-product">关联商品（可选）</Label>
+              <Select
+                id="up-product"
+                value={uploadProductId}
+                onChange={(e) => {
+                  setUploadProductId(e.target.value);
+                  setUploadScriptId("");
+                }}
+                className="w-full"
+              >
+                <option value="">不关联</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="up-script">关联脚本（可选）</Label>
+              <Select id="up-script" value={uploadScriptId} onChange={(e) => setUploadScriptId(e.target.value)} className="w-full">
+                <option value="">不关联</option>
+                {filteredScripts.map((s) => (
+                  <option key={s.id} value={s.id}>{s.title ?? `脚本 #${s.id}`}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setUploadOpen(false)} disabled={uploading}>取消</Button>
+              <Button onClick={submitUpload} disabled={uploading || !uploadFile}>{uploading ? "上传中..." : "上传"}</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {publishTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setPublishTarget(null)}>
