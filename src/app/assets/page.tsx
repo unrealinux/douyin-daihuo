@@ -7,6 +7,8 @@ import { EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/Page
 import { useToast } from "@/components/Toast";
 import Modal from "@/components/Modal";
 import { Button, Card, Input, Label, Select } from "@/components/ui";
+import Reveal from "@/components/Reveal";
+import Spotlight from "@/components/Spotlight";
 
 interface Asset {
   id: number; fileName: string; filePath: string; fileType: string; size: number;
@@ -218,25 +220,36 @@ export default function AssetsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {assets.map((a) => {
+            {assets.map((a, idx) => {
               const url = filePublicUrl(a.filePath);
               const draft = scheduleDraft[a.id] ?? "";
               return (
-                <Card key={a.id} hover className="overflow-hidden p-0">
-                  <div className="relative aspect-video bg-black/40">
-                    {url && a.fileType === "IMAGE" ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt={a.fileName} className="h-full w-full object-cover" />
-                    ) : url ? (
-                      <video src={url} className="h-full w-full object-cover" muted preload="metadata" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-fg-2">无预览</div>
-                    )}
-                    <div className="absolute left-2 top-2"><StatusBadge status={a.status} /></div>
-                    <button onClick={() => setDel(a)} className="absolute right-2 top-2 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white/80 backdrop-blur transition-colors duration-150 hover:bg-danger/90 hover:text-white">删除</button>
-                  </div>
-                  <div className="space-y-2 p-3">
-                    <div className="truncate text-[15px] font-medium text-fg">{a.title ?? a.fileName}</div>
+                <Reveal key={a.id} delay={Math.min(idx % 8, 7) * 50}>
+                  <Spotlight className="h-full">
+                    <Card hover className="h-full overflow-hidden p-0">
+                      <div className="relative aspect-video bg-black/40">
+                        {url && a.fileType === "IMAGE" ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={url} alt={a.fileName} className="h-full w-full object-cover" />
+                        ) : url ? (
+                          <video src={url} className="h-full w-full object-cover" muted preload="metadata" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-fg-2">无预览</div>
+                        )}
+                        {url && a.fileType !== "IMAGE" && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-200 group-hover/spot:bg-black/30">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white opacity-0 backdrop-blur transition-all duration-300 ease-out-expo group-hover/spot:scale-100 group-hover/spot:opacity-100">
+                              <svg viewBox="0 0 24 24" className="h-4 w-4 translate-x-[1px]" fill="currentColor">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </span>
+                          </div>
+                        )}
+                        <div className="absolute left-2 top-2"><StatusBadge status={a.status} /></div>
+                        <button onClick={() => setDel(a)} className="absolute right-2 top-2 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white/80 backdrop-blur transition-colors duration-150 hover:bg-danger/90 hover:text-white">删除</button>
+                      </div>
+                      <div className="space-y-2 p-3">
+                        <div className="truncate text-[15px] font-medium text-fg">{a.title ?? a.fileName}</div>
                     <Select
                       value={a.product?.id ? String(a.product.id) : ""}
                       onChange={(e) => linkAsset(a.id, "productId", e.target.value)}
@@ -313,7 +326,9 @@ export default function AssetsPage() {
                       </div>
                     )}
                   </div>
-                </Card>
+                  </Card>
+                  </Spotlight>
+                </Reveal>
               );
             })}
             {assets.length === 0 && (
@@ -325,40 +340,48 @@ export default function AssetsPage() {
 
       <section>
         <h2 className="mb-3 text-sm font-medium text-fg-2">排期时间线</h2>
-        <div className="space-y-2">
-          {schedules.map((s) => {
+        <div className="space-y-1.5">
+          {schedules.map((s, idx) => {
             const fromList =
               assets.find((a) => a.id === s.assetId) ??
               assets.find((a) => a.schedules.some((x) => x.id === s.id));
             const title =
               s.asset?.title ?? s.asset?.fileName ?? fromList?.title ?? fromList?.fileName ?? "素材已删除";
             return (
-              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-white/10">
-                <div className="min-w-0">
-                  <span className="tnum font-medium text-fg">{new Date(s.scheduledAt).toLocaleString()}</span>
-                  <span className="ml-3 text-fg-2">{title}</span>
+              <Reveal key={s.id} delay={Math.min(idx % 10, 9) * 40}>
+                <div className="group relative flex items-stretch gap-3">
+                  <div className="flex flex-col items-center pt-3">
+                    <span className={`h-2.5 w-2.5 rounded-full ${s.publishStatus === "PUBLISHED" ? "bg-success" : s.publishStatus === "PLANNED" ? "bg-cyan-400 animate-pulse" : "bg-warning"}`} />
+                    {idx < schedules.length - 1 && <span className="mt-1 w-px flex-1 bg-line/60" />}
+                  </div>
+                  <div className="flex flex-1 flex-wrap items-center justify-between gap-2 rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-sm transition-colors duration-150 group-hover:border-white/10">
+                    <div className="min-w-0">
+                      <span className="tnum font-medium text-fg">{new Date(s.scheduledAt).toLocaleString()}</span>
+                      <span className="ml-3 text-fg-2">{title}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={s.publishStatus} />
+                      {s.publishUrl && (
+                        <a href={s.publishUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-300 transition-colors hover:text-cyan">
+                          链接
+                        </a>
+                      )}
+                      {s.publishStatus === "PLANNED" && (
+                        <Button
+                          variant="ghost"
+                          className="text-xs"
+                          onClick={() => {
+                            setPublishTarget(s);
+                            setPublishUrl(s.publishUrl ?? "");
+                          }}
+                        >
+                          标记发布
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={s.publishStatus} />
-                  {s.publishUrl && (
-                    <a href={s.publishUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-300 transition-colors hover:text-cyan">
-                      链接
-                    </a>
-                  )}
-                  {s.publishStatus === "PLANNED" && (
-                    <Button
-                      variant="ghost"
-                      className="text-xs"
-                      onClick={() => {
-                        setPublishTarget(s);
-                        setPublishUrl(s.publishUrl ?? "");
-                      }}
-                    >
-                      标记发布
-                    </Button>
-                  )}
-                </div>
-              </div>
+              </Reveal>
             );
           })}
           {!loading && schedules.length === 0 && (

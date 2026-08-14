@@ -5,7 +5,7 @@ export function Button({ children, onClick, variant = "primary", className = "",
   className?: string; type?: "button" | "submit"; disabled?: boolean;
 }) {
   const styles = {
-    primary: "bg-accent text-white shadow-accent hover:bg-[#ff3f63]",
+    primary: "bg-accent text-white shadow-accent hover:bg-[#ff3f63] hover:shadow-[0_10px_30px_-8px_rgb(254_44_85/0.55)]",
     secondary: "bg-transparent border border-line text-white hover:bg-white/5 hover:border-white/20",
     danger: "bg-danger/90 text-white hover:bg-danger",
     ghost: "bg-transparent text-fg-2 hover:text-white hover:bg-white/5",

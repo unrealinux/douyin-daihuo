@@ -14,20 +14,34 @@ const links = [
 
 function DiscIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-accent" aria-hidden>
-      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 14.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-2.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
-      <path d="M12 7.5a.75.75 0 0 1 .75-.75 3 3 0 0 1 3 3 .75.75 0 1 1-1.5 0 1.5 1.5 0 0 0-1.5-1.5.75.75 0 0 1-.75-.75Z" className="fill-cyan" />
-    </svg>
+    <span className="relative flex h-7 w-7 items-center justify-center rounded-xl bg-accent/15">
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-accent" aria-hidden>
+        <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 14.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-2.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+        <path d="M12 7.5a.75.75 0 0 1 .75-.75 3 3 0 0 1 3 3 .75.75 0 1 1-1.5 0 1.5 1.5 0 0 0-1.5-1.5.75.75 0 0 1-.75-.75Z" className="fill-cyan" />
+      </svg>
+    </span>
   );
 }
 
 export default function Nav() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     setOpen(false);
   }, [path]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const h = document.documentElement;
+      const max = h.scrollHeight - h.clientHeight;
+      setProgress(max > 0 ? h.scrollTop / max : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +73,7 @@ export default function Nav() {
   return (
     <nav className="sticky top-3 z-40 px-4">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 rounded-full border border-line/60 bg-surface/80 py-1.5 pl-4 pr-1.5 shadow-card backdrop-blur-xl animate-fade-in">
-        <div className="flex min-w-0 items-center gap-2 font-bold">
+        <div className="flex min-w-0 items-center gap-2.5 font-bold">
           <DiscIcon />
           <span className="truncate text-[15px] tracking-tight">抖音带货助手</span>
         </div>
@@ -87,6 +101,12 @@ export default function Nav() {
             )}
           </svg>
         </button>
+
+        <span
+          className="absolute bottom-0 left-4 right-4 h-px origin-left bg-gradient-to-r from-accent via-cyan to-transparent"
+          style={{ transform: `scaleX(${progress})` }}
+          aria-hidden
+        />
       </div>
 
       {open && (

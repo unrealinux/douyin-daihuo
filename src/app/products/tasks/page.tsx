@@ -6,6 +6,8 @@ import StatusBadge from "@/components/StatusBadge";
 import { EmptyState, ErrorBanner, PageHeader } from "@/components/PageChrome";
 import { useToast } from "@/components/Toast";
 import { Button, Card, Input, Label } from "@/components/ui";
+import Reveal from "@/components/Reveal";
+import Spotlight from "@/components/Spotlight";
 
 interface Task {
   id: number; type: string; keyword?: string | null; url?: string | null;
@@ -103,43 +105,74 @@ export default function TasksPage() {
         </div>
       )}
 
-      <Card className="space-y-3 p-4">
-        <Label htmlFor="kw">关键词搜索</Label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input id="kw" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="例如：厨房 收纳 爆款" />
-          <Button onClick={() => submit("KEYWORD")}>抓取</Button>
-        </div>
-      </Card>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Card className="space-y-3 p-4">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent">
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
+              </svg>
+            </span>
+            <Label htmlFor="kw">关键词搜索</Label>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input id="kw" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="例如：厨房 收纳 爆款" />
+            <Button onClick={() => submit("KEYWORD")}>抓取</Button>
+          </div>
+        </Card>
 
-      <Card className="space-y-3 p-4">
-        <Label htmlFor="link">链接抓取</Label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input id="link" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." />
-          <Button onClick={() => submit("LINK")}>抓取</Button>
-        </div>
-      </Card>
+        <Card className="space-y-3 p-4">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-300">
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </span>
+            <Label htmlFor="link">链接抓取</Label>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input id="link" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." />
+            <Button onClick={() => submit("LINK")}>抓取</Button>
+          </div>
+        </Card>
+      </div>
 
       {msg && <p className={`text-sm ${msgOk ? "text-success" : "text-danger"}`}>{msg}</p>}
 
       <section>
         <h2 className="mb-3 text-sm font-medium text-fg-2">任务列表</h2>
         <div className="space-y-2">
-          {tasks.map((t) => (
-            <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-white/10">
-              <div className="min-w-0">
-                <div className="font-medium text-fg">
-                  {t.type === "KEYWORD" ? `关键词: ${t.keyword}` : `链接: ${t.url}`}
+          {tasks.map((t, i) => (
+            <Reveal key={t.id} delay={Math.min(i % 8, 7) * 50}>
+              <Spotlight>
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-white/10">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${t.type === "KEYWORD" ? "bg-accent/15 text-accent" : "bg-cyan-500/15 text-cyan-300"}`}>
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        {t.type === "KEYWORD" ? (
+                          <path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
+                        ) : (
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                        )}
+                      </svg>
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-medium text-fg">
+                        {t.type === "KEYWORD" ? `关键词: ${t.keyword}` : `链接: ${t.url}`}
+                      </div>
+                      <div className="tnum text-xs text-fg-2">
+                        {new Date(t.createdAt).toLocaleString()} · 重试 {t.retryCount} 次
+                      </div>
+                      {t.message && <div className="text-xs text-fg-2">{t.message}</div>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={t.status} />
+                    {t.status === "FAILED" && <Button variant="ghost" className="text-xs" onClick={() => retry(t.id)}>重试</Button>}
+                  </div>
                 </div>
-                <div className="tnum text-xs text-fg-2">
-                  {new Date(t.createdAt).toLocaleString()} · 重试 {t.retryCount} 次
-                </div>
-                {t.message && <div className="text-xs text-fg-2">{t.message}</div>}
-              </div>
-              <div className="flex items-center gap-2">
-                <StatusBadge status={t.status} />
-                {t.status === "FAILED" && <Button variant="ghost" className="text-xs" onClick={() => retry(t.id)}>重试</Button>}
-              </div>
-            </div>
+              </Spotlight>
+            </Reveal>
           ))}
           {tasks.length === 0 && !err && (
             <EmptyState title="暂无任务" description="关键词会走网页搜索兜底；精确选品请用手动/CSV" />

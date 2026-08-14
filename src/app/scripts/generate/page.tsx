@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button, Card, Input, Label, Select } from "@/components/ui";
+import Reveal from "@/components/Reveal";
+import Spotlight from "@/components/Spotlight";
 
 interface Product {
   id: number; name: string; note?: string | null; category?: string | null;
@@ -72,7 +74,7 @@ function GenerateForm() {
     <button
       onClick={() => setMode(m)}
       className={`rounded-full px-4 py-1.5 text-sm transition-all duration-200 ease-out-expo active:scale-[0.98] focus-visible:ring-2 ring-accent/50 ${
-        mode === m ? "bg-accent text-white shadow-accent" : "border border-line text-fg-2 hover:bg-white/5 hover:text-white"
+        mode === m ? "bg-accent text-white shadow-accent" : "text-fg-2 hover:bg-white/5 hover:text-white"
       }`}
     >
       {label}
@@ -80,63 +82,74 @@ function GenerateForm() {
   );
 
   return (
-    <div className="mx-auto max-w-xl space-y-4 animate-fade-up">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">生成脚本文案</h1>
-        <Link href="/scripts"><span className="text-sm text-cyan-300 transition-colors hover:text-cyan">返回列表</span></Link>
-      </div>
-
-      <div className="flex gap-3">
-        {modeBtn("manual", "手动输入")}
-        {modeBtn("product", "从商品库选品")}
-      </div>
-
-      <Card className="space-y-4 p-5">
-        {mode === "product" ? (
+    <div className="mx-auto max-w-xl space-y-5">
+      <Reveal>
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <Label>选择商品</Label>
-            <Select value={productId} onChange={(e) => setProductId(e.target.value)}>
-              <option value="">请选择</option>
-              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </Select>
-            <div className="mt-3">
-              <Label>补充卖点（可选，自动带出商品备注/类目）</Label>
-              <Input value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} />
-            </div>
+            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">生成脚本文案</h1>
+            <p className="mt-1 text-sm text-fg-2">选好风格和时长，一键生成口播脚本</p>
           </div>
-        ) : (
-          <>
-            <div><Label>商品名称</Label><Input value={productName} onChange={(e) => setProductName(e.target.value)} /></div>
-            <div><Label>卖点（可填价格、材质、适用人群等）</Label><Input value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} /></div>
-          </>
-        )}
-
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <Label>风格</Label>
-            <Select value={style} onChange={(e) => setStyle(e.target.value)}>
-              {STYLES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-            </Select>
-          </div>
-          <div className="flex-1">
-            <Label>目标时长（秒）</Label>
-            <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} />
-          </div>
+          <Link href="/scripts" className="shrink-0 text-sm text-cyan-300 transition-colors hover:text-cyan">返回列表</Link>
         </div>
+      </Reveal>
 
-        <Button onClick={generate} disabled={loading}>
-          {loading ? "生成中..." : "生成"}
-        </Button>
-        {resultId != null && (
-          <p className="text-sm text-success">
-            已生成脚本 #{resultId} ·{" "}
-            <Link href={`/scripts?id=${resultId}`} className="text-cyan-300 underline hover:text-cyan">
-              查看脚本
-            </Link>
-          </p>
-        )}
-        {err && <p className="text-sm text-danger">{err}</p>}
-      </Card>
+      <Reveal delay={80}>
+        <div className="inline-flex rounded-full border border-line bg-surface/80 p-1 backdrop-blur">
+          {modeBtn("manual", "手动输入")}
+          {modeBtn("product", "从商品库选品")}
+        </div>
+      </Reveal>
+
+      <Reveal delay={140}>
+        <Spotlight>
+          <Card className="space-y-4 p-5">
+            {mode === "product" ? (
+              <div>
+                <Label>选择商品</Label>
+                <Select value={productId} onChange={(e) => setProductId(e.target.value)}>
+                  <option value="">请选择</option>
+                  {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </Select>
+                <div className="mt-3">
+                  <Label>补充卖点（可选，自动带出商品备注/类目）</Label>
+                  <Input value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div><Label>商品名称</Label><Input value={productName} onChange={(e) => setProductName(e.target.value)} /></div>
+                <div><Label>卖点（可填价格、材质、适用人群等）</Label><Input value={sellingPoints} onChange={(e) => setSellingPoints(e.target.value)} /></div>
+              </>
+            )}
+
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Label>风格</Label>
+                <Select value={style} onChange={(e) => setStyle(e.target.value)}>
+                  {STYLES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </Select>
+              </div>
+              <div className="flex-1">
+                <Label>目标时长（秒）</Label>
+                <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} />
+              </div>
+            </div>
+
+            <Button onClick={generate} disabled={loading}>
+              {loading ? "生成中..." : "生成"}
+            </Button>
+            {resultId != null && (
+              <p className="text-sm text-success">
+                已生成脚本 #{resultId} ·{" "}
+                <Link href={`/scripts?id=${resultId}`} className="text-cyan-300 underline hover:text-cyan">
+                  查看脚本
+                </Link>
+              </p>
+            )}
+            {err && <p className="text-sm text-danger">{err}</p>}
+          </Card>
+        </Spotlight>
+      </Reveal>
     </div>
   );
 }

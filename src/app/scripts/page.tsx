@@ -10,6 +10,8 @@ import { useToast } from "@/components/Toast";
 import Modal from "@/components/Modal";
 import { Button, Card } from "@/components/ui";
 import { formatScriptPlaintext, parseHashtagsJson } from "@/services/scriptParser";
+import Reveal from "@/components/Reveal";
+import Spotlight from "@/components/Spotlight";
 
 interface Script {
   id: number; title?: string | null; hook?: string | null; body: string;
@@ -87,28 +89,32 @@ function ScriptsList() {
       {err && <ErrorBanner message={err} onRetry={load} />}
 
       <div className="space-y-3">
-        {scripts.map((s) => (
-          <Card key={s.id} hover className={`animate-fade-up p-4 ${deepId === String(s.id) ? "border-accent/40" : ""}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="truncate text-[15px] font-medium text-fg">
-                  {s.title ?? `脚本 #${s.id}`}
+        {scripts.map((s, i) => (
+          <Reveal key={s.id} delay={Math.min(i % 6, 5) * 60}>
+            <Spotlight>
+              <Card hover className={`p-4 ${deepId === String(s.id) ? "border-accent/40" : ""}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-[15px] font-medium text-fg">
+                      {s.title ?? `脚本 #${s.id}`}
+                    </div>
+                    {s.product && <div className="mt-0.5 truncate text-xs text-fg-2">{s.product.name}</div>}
+                  </div>
+                  <StatusBadge status={s.status} />
                 </div>
-                {s.product && <div className="mt-0.5 truncate text-xs text-fg-2">{s.product.name}</div>}
-              </div>
-              <StatusBadge status={s.status} />
-            </div>
-            <div className="tnum mt-1 text-xs text-fg-2">
-              {s.style} · {s.durationSec}s · {s.llmModel ?? ""} · {new Date(s.createdAt).toLocaleString()}
-            </div>
-            <div className="mt-2 line-clamp-2 text-sm text-white/80">{s.body}</div>
-            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line/50 pt-3">
-              <Button onClick={() => setOpen(s)}>查看</Button>
-              <Button variant="ghost" onClick={() => copyScript(s)}>复制</Button>
-              <Button variant="ghost" onClick={() => { setStatus(s, "ADOPTED"); }}>采用</Button>
-              <Button variant="ghost" className="ml-auto text-danger/80 hover:bg-danger/10 hover:text-danger" onClick={() => setDel(s)}>删除</Button>
-            </div>
-          </Card>
+                <div className="tnum mt-1 text-xs text-fg-2">
+                  {s.style} · {s.durationSec}s · {s.llmModel ?? ""} · {new Date(s.createdAt).toLocaleString()}
+                </div>
+                <div className="mt-2 line-clamp-2 text-sm text-white/80">{s.body}</div>
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line/50 pt-3">
+                  <Button onClick={() => setOpen(s)}>查看</Button>
+                  <Button variant="ghost" onClick={() => copyScript(s)}>复制</Button>
+                  <Button variant="ghost" onClick={() => { setStatus(s, "ADOPTED"); }}>采用</Button>
+                  <Button variant="ghost" className="ml-auto text-danger/80 hover:bg-danger/10 hover:text-danger" onClick={() => setDel(s)}>删除</Button>
+                </div>
+              </Card>
+            </Spotlight>
+          </Reveal>
         ))}
         {scripts.length === 0 && !err && (
           <EmptyState title="暂无脚本" description="从商品库选品或手动输入后生成" actionHref="/scripts/generate" actionLabel="去生成" />

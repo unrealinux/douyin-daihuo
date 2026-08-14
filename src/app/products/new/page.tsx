@@ -6,6 +6,8 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageChrome";
 import { useToast } from "@/components/Toast";
 import { Button, Card, Input, Label } from "@/components/ui";
+import Reveal from "@/components/Reveal";
+import Spotlight from "@/components/Spotlight";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -52,13 +54,18 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="mx-auto max-w-lg space-y-4 animate-fade-up">
-      <PageHeader
-        title="新增商品"
-        actions={<Link href="/products"><Button variant="ghost">返回</Button></Link>}
-      />
-      <Card className="space-y-4 p-5">
-        <div><Label htmlFor="name">商品名称 *</Label><Input id="name" value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
+    <div className="mx-auto max-w-lg space-y-4">
+      <Reveal>
+        <PageHeader
+          title="新增商品"
+          description="录入待跟进的商品信息"
+          actions={<Link href="/products"><Button variant="ghost">返回</Button></Link>}
+        />
+      </Reveal>
+      <Reveal delay={80}>
+        <Spotlight>
+          <Card className="space-y-4 p-5">
+            <div><Label htmlFor="name">商品名称 *</Label><Input id="name" value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
         <div><Label htmlFor="url">商品链接</Label><Input id="url" value={form.url} onChange={(e) => set("url", e.target.value)} /></div>
         <div><Label htmlFor="category">类目</Label><Input id="category" value={form.category} onChange={(e) => set("category", e.target.value)} /></div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -69,7 +76,9 @@ export default function NewProductPage() {
         <div><Label htmlFor="note">备注</Label><Input id="note" value={form.note} onChange={(e) => set("note", e.target.value)} /></div>
         {err && <p className="text-sm text-danger">{err}</p>}
         <Button onClick={submit} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
-      </Card>
+          </Card>
+        </Spotlight>
+      </Reveal>
     </div>
   );
 }

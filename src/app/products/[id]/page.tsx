@@ -6,6 +6,8 @@ import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import { useToast } from "@/components/Toast";
 import { Button, Card, Input, Label, Select } from "@/components/ui";
+import Reveal from "@/components/Reveal";
+import Spotlight from "@/components/Spotlight";
 
 interface Product {
   id: number; name: string; url?: string | null; category?: string | null;
@@ -75,14 +77,21 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-up">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">{p.name}</h1>
-        <StatusBadge status={p.status} />
-      </div>
+    <div className="space-y-6">
+      <Reveal>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold tracking-tight text-fg md:text-3xl">{p.name}</h1>
+            <p className="mt-1 text-sm text-fg-2">编辑商品信息并跟踪脚本产出</p>
+          </div>
+          <StatusBadge status={p.status} />
+        </div>
+      </Reveal>
 
-      <Card className="max-w-lg space-y-4 p-5">
-        <div><Label>商品名称</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
+      <Reveal delay={70}>
+        <Spotlight>
+          <Card className="max-w-lg space-y-4 p-5">
+            <div><Label>商品名称</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
         <div><Label>链接</Label><Input value={form.url} onChange={(e) => set("url", e.target.value)} /></div>
         <div><Label>类目</Label><Input value={form.category} onChange={(e) => set("category", e.target.value)} /></div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -114,20 +123,24 @@ export default function ProductDetailPage() {
           <Button onClick={save} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
           <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="secondary">生成文案</Button></Link>
         </div>
-      </Card>
+          </Card>
+        </Spotlight>
+      </Reveal>
 
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-fg-2">已生成脚本（{p.scriptIdeas.length}）</h2>
-        <div className="space-y-2">
-          {p.scriptIdeas.map((s) => (
-            <div key={s.id} className="flex items-center justify-between rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 transition-colors duration-150 hover:border-white/10">
-              <Link href={`/scripts?id=${s.id}`} className="text-fg transition-colors duration-150 hover:text-accent">{s.title ?? `脚本 #${s.id}`}</Link>
-              <StatusBadge status={s.status} />
-            </div>
-          ))}
-          {p.scriptIdeas.length === 0 && <p className="text-sm text-fg-2">暂无脚本</p>}
-        </div>
-      </section>
+      <Reveal delay={140}>
+        <section>
+          <h2 className="mb-3 text-sm font-medium text-fg-2">已生成脚本（{p.scriptIdeas.length}）</h2>
+          <div className="space-y-2">
+            {p.scriptIdeas.map((s) => (
+              <div key={s.id} className="flex items-center justify-between rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 transition-colors duration-150 hover:border-white/10">
+                <Link href={`/scripts?id=${s.id}`} className="text-fg transition-colors duration-150 hover:text-accent">{s.title ?? `脚本 #${s.id}`}</Link>
+                <StatusBadge status={s.status} />
+              </div>
+            ))}
+            {p.scriptIdeas.length === 0 && <p className="text-sm text-fg-2">暂无脚本</p>}
+          </div>
+        </section>
+      </Reveal>
     </div>
   );
 }

@@ -7,6 +7,8 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/PageChrome";
 import { useToast } from "@/components/Toast";
 import { Button, Card, Input, Select } from "@/components/ui";
+import Reveal from "@/components/Reveal";
+import Spotlight from "@/components/Spotlight";
 
 interface Product {
   id: number; name: string; category?: string | null; price?: number | null;
@@ -155,6 +157,7 @@ export default function ProductsPage() {
           <option value="desc">降序</option>
           <option value="asc">升序</option>
         </Select>
+        <span className="hidden h-5 w-px bg-line/70 lg:block" aria-hidden />
         <Button variant="ghost" onClick={toggleAll} disabled={products.length === 0}>
           {selected.size === products.length && products.length > 0 ? "取消全选" : "全选"}
         </Button>
@@ -168,40 +171,44 @@ export default function ProductsPage() {
 
       {loading ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-40" />)}
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-44" />)}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {products.map((p, i) => (
-            <Card key={p.id} hover className={`animate-fade-up p-4 ${selected.has(p.id) ? "border-accent/50 shadow-accent" : ""}`} >
-              <div className="flex items-start justify-between gap-2">
-                <label className="flex min-w-0 items-start gap-2">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 rounded accent-accent"
-                    checked={selected.has(p.id)}
-                    onChange={() => toggle(p.id)}
-                  />
-                  <Link href={`/products/${p.id}`} className="text-[15px] font-medium text-fg transition-colors duration-150 hover:text-accent">{p.name}</Link>
-                </label>
-                <StatusBadge status={p.status} />
-              </div>
-              <div className="tnum mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-fg-2">
-                <div>类目 {p.category ?? "-"}</div>
-                <div>价格 {p.price != null ? `¥${p.price}` : "-"}</div>
-                <div>佣金 {p.commissionRate != null ? `${p.commissionRate}%` : "-"}</div>
-                <div>近30天 {p.dailySales ?? "-"}</div>
-              </div>
-              <div className="mt-2 flex items-center gap-2 text-xs text-fg-2">
-                <StatusBadge status={p.trend} />
-                <span className="tnum">脚本 {p._count?.scriptIdeas ?? 0} · 素材 {p._count?.assets ?? 0}</span>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line/50 pt-3">
-                <Link href={`/scripts/generate?productId=${p.id}`}><Button>生成文案</Button></Link>
-                <Link href={`/products/${p.id}`}><Button variant="ghost">编辑</Button></Link>
-                <Button variant="ghost" className="ml-auto text-danger/80 hover:bg-danger/10 hover:text-danger" onClick={() => setDel(p)}>删除</Button>
-              </div>
-            </Card>
+            <Reveal key={p.id} delay={Math.min(i % 6, 5) * 60}>
+              <Spotlight className="h-full">
+                <Card hover className={`h-full p-4 ${selected.has(p.id) ? "border-accent/50 shadow-accent" : ""}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <label className="flex min-w-0 items-start gap-2">
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 rounded accent-accent"
+                        checked={selected.has(p.id)}
+                        onChange={() => toggle(p.id)}
+                      />
+                      <Link href={`/products/${p.id}`} className="text-[15px] font-medium text-fg transition-colors duration-150 hover:text-accent">{p.name}</Link>
+                    </label>
+                    <StatusBadge status={p.status} />
+                  </div>
+                  <div className="tnum mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-fg-2">
+                    <div>类目 {p.category ?? "-"}</div>
+                    <div>价格 {p.price != null ? `¥${p.price}` : "-"}</div>
+                    <div>佣金 {p.commissionRate != null ? `${p.commissionRate}%` : "-"}</div>
+                    <div>近30天 {p.dailySales ?? "-"}</div>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 text-xs text-fg-2">
+                    <StatusBadge status={p.trend} />
+                    <span className="tnum">脚本 {p._count?.scriptIdeas ?? 0} · 素材 {p._count?.assets ?? 0}</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line/50 pt-3">
+                    <Link href={`/scripts/generate?productId=${p.id}`}><Button>生成文案</Button></Link>
+                    <Link href={`/products/${p.id}`}><Button variant="ghost">编辑</Button></Link>
+                    <Button variant="ghost" className="ml-auto text-danger/80 hover:bg-danger/10 hover:text-danger" onClick={() => setDel(p)}>删除</Button>
+                  </div>
+                </Card>
+              </Spotlight>
+            </Reveal>
           ))}
           {products.length === 0 && (
             <EmptyState
