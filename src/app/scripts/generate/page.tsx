@@ -71,8 +71,8 @@ function GenerateForm() {
   const modeBtn = (m: "manual" | "product", label: string) => (
     <button
       onClick={() => setMode(m)}
-      className={`rounded-lg px-3 py-1.5 text-sm transition-all focus-visible:ring-2 ring-accent/50 ${
-        mode === m ? "bg-accent text-white shadow-card" : "border border-white/10 text-white/70 hover:bg-white/10"
+      className={`rounded-full px-4 py-1.5 text-sm transition-all duration-200 ease-out-expo active:scale-[0.98] focus-visible:ring-2 ring-accent/50 ${
+        mode === m ? "bg-accent text-white shadow-accent" : "border border-line text-fg-2 hover:bg-white/5 hover:text-white"
       }`}
     >
       {label}
@@ -80,10 +80,10 @@ function GenerateForm() {
   );
 
   return (
-    <div className="mx-auto max-w-xl space-y-4">
+    <div className="mx-auto max-w-xl space-y-4 animate-fade-up">
       <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold">生成脚本文案</h1>
-        <Link href="/scripts"><span className="text-sm text-cyan-300 hover:underline">返回列表</span></Link>
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">生成脚本文案</h1>
+        <Link href="/scripts"><span className="text-sm text-cyan-300 transition-colors hover:text-cyan">返回列表</span></Link>
       </div>
 
       <div className="flex gap-3">
@@ -143,7 +143,7 @@ function GenerateForm() {
 
 export default function GeneratePage() {
   return (
-    <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-white/5" />}>
+    <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-white/5" />}>
       <GenerateForm />
     </Suspense>
   );

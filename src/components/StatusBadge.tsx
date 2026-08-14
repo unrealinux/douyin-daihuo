@@ -1,22 +1,22 @@
-const STATUS_COLORS: Record<string, string> = {
-  CANDIDATE: "bg-white/10 text-white/60",
-  FOLLOWING: "bg-cyan-500/15 text-cyan-300",
-  SELECTED: "bg-success/15 text-success",
-  DROPPED: "bg-danger/15 text-danger",
-  DRAFT: "bg-white/10 text-white/60",
-  ADOPTED: "bg-success/15 text-success",
-  DISCARDED: "bg-danger/15 text-danger",
-  PENDING: "bg-warning/15 text-warning",
-  PUBLISHED: "bg-success/15 text-success",
-  PLANNED: "bg-cyan-500/15 text-cyan-300",
-  SKIPPED: "bg-white/10 text-white/60",
-  QUEUED: "bg-warning/15 text-warning",
-  RUNNING: "bg-cyan-500/15 text-cyan-300",
-  SUCCESS: "bg-success/15 text-success",
-  FAILED: "bg-danger/15 text-danger",
-  UP: "bg-accent/15 text-accent",
-  STEADY: "bg-success/15 text-success",
-  DOWN: "bg-danger/15 text-danger",
+const STATUS_STYLES: Record<string, { dot: string; text: string }> = {
+  CANDIDATE: { dot: "bg-white/40", text: "bg-white/10 text-white/60" },
+  FOLLOWING: { dot: "bg-cyan-400", text: "bg-cyan-500/15 text-cyan-300" },
+  SELECTED: { dot: "bg-success", text: "bg-success/15 text-success" },
+  DROPPED: { dot: "bg-danger", text: "bg-danger/15 text-danger" },
+  DRAFT: { dot: "bg-white/40", text: "bg-white/10 text-white/60" },
+  ADOPTED: { dot: "bg-success", text: "bg-success/15 text-success" },
+  DISCARDED: { dot: "bg-danger", text: "bg-danger/15 text-danger" },
+  PENDING: { dot: "bg-warning", text: "bg-warning/15 text-warning" },
+  PUBLISHED: { dot: "bg-success", text: "bg-success/15 text-success" },
+  PLANNED: { dot: "bg-cyan-400", text: "bg-cyan-500/15 text-cyan-300" },
+  SKIPPED: { dot: "bg-white/40", text: "bg-white/10 text-white/60" },
+  QUEUED: { dot: "bg-warning", text: "bg-warning/15 text-warning" },
+  RUNNING: { dot: "bg-cyan-400 animate-pulse", text: "bg-cyan-500/15 text-cyan-300" },
+  SUCCESS: { dot: "bg-success", text: "bg-success/15 text-success" },
+  FAILED: { dot: "bg-danger", text: "bg-danger/15 text-danger" },
+  UP: { dot: "bg-accent", text: "bg-accent/15 text-accent" },
+  STEADY: { dot: "bg-success", text: "bg-success/15 text-success" },
+  DOWN: { dot: "bg-danger", text: "bg-danger/15 text-danger" },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -29,9 +29,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function StatusBadge({ status }: { status: string }) {
-  const color = STATUS_COLORS[status] ?? "bg-white/10 text-white/60";
+  const style = STATUS_STYLES[status] ?? { dot: "bg-white/40", text: "bg-white/10 text-white/60" };
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${style.text}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} aria-hidden />
       {STATUS_LABELS[status] ?? status}
     </span>
   );

@@ -88,7 +88,7 @@ function ScriptsList() {
 
       <div className="space-y-3">
         {scripts.map((s) => (
-          <Card key={s.id} hover className={`p-4 ${deepId === String(s.id) ? "border-accent/40" : ""}`}>
+          <Card key={s.id} hover className={`animate-fade-up p-4 ${deepId === String(s.id) ? "border-accent/40" : ""}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="truncate text-[15px] font-medium text-fg">
@@ -102,11 +102,11 @@ function ScriptsList() {
               {s.style} · {s.durationSec}s · {s.llmModel ?? ""} · {new Date(s.createdAt).toLocaleString()}
             </div>
             <div className="mt-2 line-clamp-2 text-sm text-white/80">{s.body}</div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line/50 pt-3">
               <Button onClick={() => setOpen(s)}>查看</Button>
               <Button variant="ghost" onClick={() => copyScript(s)}>复制</Button>
               <Button variant="ghost" onClick={() => { setStatus(s, "ADOPTED"); }}>采用</Button>
-              <Button variant="ghost" className="ml-auto text-danger/80 hover:text-danger" onClick={() => setDel(s)}>删除</Button>
+              <Button variant="ghost" className="ml-auto text-danger/80 hover:bg-danger/10 hover:text-danger" onClick={() => setDel(s)}>删除</Button>
             </div>
           </Card>
         ))}

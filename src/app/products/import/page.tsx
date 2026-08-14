@@ -40,12 +40,12 @@ export default function ImportPage() {
   };
 
   return (
-    <div className="mx-auto max-w-lg space-y-4">
+    <div className="mx-auto max-w-lg space-y-4 animate-fade-up">
       <PageHeader title="CSV 批量导入" actions={<Button variant="ghost" onClick={() => router.push("/products")}>返回</Button>} />
       <Card className="space-y-4 p-5">
         <p className="text-sm text-fg-2">表头支持：名称/链接/价格/佣金率/销量/类目（也支持 name/url/price/commissionRate/dailySales/category）</p>
-        <label className="block cursor-pointer rounded-lg border border-dashed border-white/20 bg-white/5 px-4 py-8 text-center text-sm text-fg-2 transition-colors hover:border-accent hover:bg-white/10">
-          {file ? <span className="text-fg">{file.name}</span> : "点击选择 .csv 文件"}
+        <label className="block cursor-pointer rounded-xl border border-dashed border-line bg-white/[0.03] px-4 py-10 text-center text-sm text-fg-2 transition-all duration-200 ease-out-expo hover:border-accent/50 hover:bg-accent/[0.04] hover:text-white active:scale-[0.99]">
+          {file ? <span className="font-medium text-fg">{file.name}</span> : "点击选择 .csv 文件"}
           <input type="file" accept=".csv" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
         <div className="flex gap-2">

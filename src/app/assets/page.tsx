@@ -211,7 +211,7 @@ export default function AssetsPage() {
       {err && <ErrorBanner message={err} onRetry={load} />}
 
       <section>
-        <h2 className="mb-2 text-sm font-medium text-fg-2">素材库（{assets.length}）</h2>
+        <h2 className="mb-3 text-sm font-medium text-fg-2">素材库（{assets.length}）</h2>
         {loading ? (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
             {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-48" />)}
@@ -230,10 +230,10 @@ export default function AssetsPage() {
                     ) : url ? (
                       <video src={url} className="h-full w-full object-cover" muted preload="metadata" />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-white/40">无预览</div>
+                      <div className="flex h-full items-center justify-center text-xs text-fg-2">无预览</div>
                     )}
                     <div className="absolute left-2 top-2"><StatusBadge status={a.status} /></div>
-                    <button onClick={() => setDel(a)} className="absolute right-2 top-2 rounded bg-black/50 px-2 py-0.5 text-xs text-white/80 hover:text-danger">删除</button>
+                    <button onClick={() => setDel(a)} className="absolute right-2 top-2 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white/80 backdrop-blur transition-colors duration-150 hover:bg-danger/90 hover:text-white">删除</button>
                   </div>
                   <div className="space-y-2 p-3">
                     <div className="truncate text-[15px] font-medium text-fg">{a.title ?? a.fileName}</div>
@@ -291,8 +291,8 @@ export default function AssetsPage() {
                     {a.schedules.length > 0 && (
                       <div className="space-y-1 text-xs">
                         {a.schedules.map((s) => (
-                          <div key={s.id} className="flex items-center justify-between gap-1 rounded bg-white/5 px-2 py-1">
-                            <span className="tnum text-white/70">{new Date(s.scheduledAt).toLocaleString()}</span>
+                          <div key={s.id} className="flex items-center justify-between gap-1 rounded-lg bg-white/5 px-2 py-1">
+                            <span className="tnum text-fg-2">{new Date(s.scheduledAt).toLocaleString()}</span>
                             <div className="flex items-center gap-1">
                               <StatusBadge status={s.publishStatus} />
                               {s.publishStatus === "PLANNED" && (
@@ -324,7 +324,7 @@ export default function AssetsPage() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-medium text-fg-2">排期时间线</h2>
+        <h2 className="mb-3 text-sm font-medium text-fg-2">排期时间线</h2>
         <div className="space-y-2">
           {schedules.map((s) => {
             const fromList =
@@ -333,7 +333,7 @@ export default function AssetsPage() {
             const title =
               s.asset?.title ?? s.asset?.fileName ?? fromList?.title ?? fromList?.fileName ?? "素材已删除";
             return (
-              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/5 bg-surface px-3 py-2 text-sm">
+              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-white/10">
                 <div className="min-w-0">
                   <span className="tnum font-medium text-fg">{new Date(s.scheduledAt).toLocaleString()}</span>
                   <span className="ml-3 text-fg-2">{title}</span>
@@ -341,7 +341,7 @@ export default function AssetsPage() {
                 <div className="flex items-center gap-2">
                   <StatusBadge status={s.publishStatus} />
                   {s.publishUrl && (
-                    <a href={s.publishUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-300 hover:underline">
+                    <a href={s.publishUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-300 transition-colors hover:text-cyan">
                       链接
                     </a>
                   )}
@@ -379,8 +379,8 @@ export default function AssetsPage() {
         }
       >
         <div className="space-y-4">
-          <label className="block cursor-pointer rounded-lg border border-dashed border-white/20 bg-white/5 px-4 py-6 text-center text-sm text-fg-2 transition-colors duration-150 hover:border-accent">
-            {uploadFile ? <span className="text-fg">{uploadFile.name}</span> : "点击选择视频或图片"}
+          <label className="block cursor-pointer rounded-xl border border-dashed border-line bg-white/[0.03] px-4 py-8 text-center text-sm text-fg-2 transition-all duration-200 ease-out-expo hover:border-accent/50 hover:bg-accent/[0.04] hover:text-white active:scale-[0.99]">
+            {uploadFile ? <span className="font-medium text-fg">{uploadFile.name}</span> : "点击选择视频或图片"}
             <input
               type="file"
               accept="video/*,image/*,.mp4,.mov,.webm,.jpg,.jpeg,.png,.gif,.webp"

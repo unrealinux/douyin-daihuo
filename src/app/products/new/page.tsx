@@ -52,7 +52,7 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="mx-auto max-w-lg space-y-4">
+    <div className="mx-auto max-w-lg space-y-4 animate-fade-up">
       <PageHeader
         title="新增商品"
         actions={<Link href="/products"><Button variant="ghost">返回</Button></Link>}

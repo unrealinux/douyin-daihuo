@@ -54,12 +54,17 @@ export default function Dashboard() {
 
       {stats ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {cards.map((c) => (
-            <Link key={c.label} href={c.href}>
-              <Card hover className="h-full p-4">
+          {cards.map((c, i) => (
+            <Link key={c.label} href={c.href} className="group animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+              <Card hover className={`h-full p-4 ${i === 0 ? "border-accent/25 bg-gradient-to-b from-accent/[0.07] to-surface" : ""}`}>
                 <div className="text-xs text-fg-2">{c.label}</div>
-                <div className="tnum mt-1 text-3xl font-semibold tracking-tight text-fg">{c.value}</div>
-                <div className="mt-2 text-xs text-fg-2">{c.hint} →</div>
+                <div className={`tnum mt-1 text-3xl font-semibold tracking-tight ${i === 0 ? "text-accent" : "text-fg"}`}>{c.value}</div>
+                <div className="mt-2 flex items-center gap-0.5 text-xs text-fg-2 transition-colors duration-200 group-hover:text-white">
+                  {c.hint}
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
               </Card>
             </Link>
           ))}
@@ -70,9 +75,9 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      <Card className="p-4">
+      <Card className="animate-fade-up p-5" >
         <p className="text-[15px] font-medium text-fg">使用流程</p>
-        <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-fg-2">
+        <ol className="mt-4 grid gap-2.5 pl-5 text-sm text-fg-2">
           <li>
             <Link href="/products/new" className="text-fg hover:text-accent">录入/导入商品</Link>
             ，或用 <Link href="/products/tasks" className="text-fg hover:text-accent">爬虫</Link> 抓取

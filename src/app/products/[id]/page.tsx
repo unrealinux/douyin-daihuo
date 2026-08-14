@@ -75,9 +75,9 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{p.name}</h1>
+    <div className="space-y-6 animate-fade-up">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight text-fg md:text-3xl">{p.name}</h1>
         <StatusBadge status={p.status} />
       </div>
 
@@ -117,15 +117,15 @@ export default function ProductDetailPage() {
       </Card>
 
       <section>
-        <h2 className="mb-2 font-semibold">已生成脚本（{p.scriptIdeas.length}）</h2>
+        <h2 className="mb-3 text-sm font-medium text-fg-2">已生成脚本（{p.scriptIdeas.length}）</h2>
         <div className="space-y-2">
           {p.scriptIdeas.map((s) => (
-            <div key={s.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-surface px-3 py-2">
-              <Link href={`/scripts?id=${s.id}`} className="text-fg hover:text-accent">{s.title ?? `脚本 #${s.id}`}</Link>
+            <div key={s.id} className="flex items-center justify-between rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 transition-colors duration-150 hover:border-white/10">
+              <Link href={`/scripts?id=${s.id}`} className="text-fg transition-colors duration-150 hover:text-accent">{s.title ?? `脚本 #${s.id}`}</Link>
               <StatusBadge status={s.status} />
             </div>
           ))}
-          {p.scriptIdeas.length === 0 && <p className="text-sm text-white/40">暂无脚本</p>}
+          {p.scriptIdeas.length === 0 && <p className="text-sm text-fg-2">暂无脚本</p>}
         </div>
       </section>
     </div>

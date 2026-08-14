@@ -28,7 +28,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const toneClass: Record<Tone, string> = {
     success: "border-success/40 bg-success/15 text-success",
     danger: "border-danger/40 bg-danger/15 text-danger",
-    info: "border-white/15 bg-surface-2 text-fg",
+    info: "border-line bg-surface-2 text-fg",
   };
 
   return (
@@ -38,7 +38,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto rounded-lg border px-3 py-2 text-sm shadow-card animate-[fadeIn_.2s_ease] ${toneClass[t.tone]}`}
+            className={`pointer-events-auto rounded-xl border px-3.5 py-2.5 text-sm shadow-card animate-slide-in-right ${toneClass[t.tone]}`}
           >
             {t.message}
           </div>

@@ -93,13 +93,13 @@ export default function TasksPage() {
 
       {err && <ErrorBanner message={err} onRetry={load} />}
 
-      <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+      <div className="rounded-xl border border-warning/30 bg-warning/10 px-3.5 py-3 text-sm text-warning">
         当前抓取是<strong className="font-medium">网页搜索兜底</strong>（百度关键词 / 打开链接取标题），不是抖音精选联盟商品库。结果请人工核对，正式选品请用手动录入或 CSV 导入。
       </div>
 
       {!pwOk && (
-        <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
-          Playwright 浏览器未安装。运行 <code className="rounded bg-black/30 px-1">npx playwright install chromium</code> 后重启。此问题不影响其他功能。
+        <div className="rounded-xl border border-warning/30 bg-warning/10 px-3.5 py-3 text-sm text-warning">
+          Playwright 浏览器未安装。运行 <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs">npx playwright install chromium</code> 后重启。此问题不影响其他功能。
         </div>
       )}
 
@@ -122,10 +122,10 @@ export default function TasksPage() {
       {msg && <p className={`text-sm ${msgOk ? "text-success" : "text-danger"}`}>{msg}</p>}
 
       <section>
-        <h2 className="mb-2 font-semibold">任务列表</h2>
+        <h2 className="mb-3 text-sm font-medium text-fg-2">任务列表</h2>
         <div className="space-y-2">
           {tasks.map((t) => (
-            <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/5 bg-surface px-3 py-2 text-sm">
+            <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-white/10">
               <div className="min-w-0">
                 <div className="font-medium text-fg">
                   {t.type === "KEYWORD" ? `关键词: ${t.keyword}` : `链接: ${t.url}`}
@@ -133,7 +133,7 @@ export default function TasksPage() {
                 <div className="tnum text-xs text-fg-2">
                   {new Date(t.createdAt).toLocaleString()} · 重试 {t.retryCount} 次
                 </div>
-                {t.message && <div className="text-xs text-white/60">{t.message}</div>}
+                {t.message && <div className="text-xs text-fg-2">{t.message}</div>}
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={t.status} />

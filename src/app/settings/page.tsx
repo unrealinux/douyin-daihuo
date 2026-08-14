@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, Card, Input, Label } from "@/components/ui";
+import { PageHeader } from "@/components/PageChrome";
 
 interface Settings {
   llm: { baseUrl: string; apiKey: string; model: string; temperature: number; apiKeyConfigured?: boolean };
@@ -43,8 +44,11 @@ export default function SettingsPage() {
     setS({ ...s, [key]: { ...s[key], [field]: value } });
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold">设置</h1>
+    <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+      <PageHeader
+        title="设置"
+        description="大模型与爬虫运行参数"
+      />
 
       <Card className="space-y-4 p-5">
         <h2 className="font-semibold">大模型配置（OpenAI 兼容）</h2>

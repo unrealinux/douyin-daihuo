@@ -132,7 +132,7 @@ export default function ProductsPage() {
 
       {err && <ErrorBanner message={err} onRetry={load} />}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line/60 bg-surface/60 p-2.5 backdrop-blur">
         <Select value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="ALL">全部状态</option>
           <option value="CANDIDATE">候选</option>
@@ -172,17 +172,17 @@ export default function ProductsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {products.map((p) => (
-            <Card key={p.id} hover className={`p-4 ${selected.has(p.id) ? "border-accent/50" : ""}`}>
+          {products.map((p, i) => (
+            <Card key={p.id} hover className={`animate-fade-up p-4 ${selected.has(p.id) ? "border-accent/50 shadow-accent" : ""}`} >
               <div className="flex items-start justify-between gap-2">
                 <label className="flex min-w-0 items-start gap-2">
                   <input
                     type="checkbox"
-                    className="mt-1 accent-accent"
+                    className="mt-1 h-4 w-4 rounded accent-accent"
                     checked={selected.has(p.id)}
                     onChange={() => toggle(p.id)}
                   />
-                  <Link href={`/products/${p.id}`} className="text-[15px] font-medium text-fg hover:text-accent">{p.name}</Link>
+                  <Link href={`/products/${p.id}`} className="text-[15px] font-medium text-fg transition-colors duration-150 hover:text-accent">{p.name}</Link>
                 </label>
                 <StatusBadge status={p.status} />
               </div>
@@ -196,10 +196,10 @@ export default function ProductsPage() {
                 <StatusBadge status={p.trend} />
                 <span className="tnum">脚本 {p._count?.scriptIdeas ?? 0} · 素材 {p._count?.assets ?? 0}</span>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line/50 pt-3">
                 <Link href={`/scripts/generate?productId=${p.id}`}><Button>生成文案</Button></Link>
                 <Link href={`/products/${p.id}`}><Button variant="ghost">编辑</Button></Link>
-                <Button variant="ghost" className="ml-auto text-danger/80 hover:text-danger" onClick={() => setDel(p)}>删除</Button>
+                <Button variant="ghost" className="ml-auto text-danger/80 hover:bg-danger/10 hover:text-danger" onClick={() => setDel(p)}>删除</Button>
               </div>
             </Card>
           ))}
