@@ -29,7 +29,7 @@
 | 素材 | `Asset` | 已有结构化分镜 + 封面提示词 + 素材包导出 |
 | 发布 | `Schedule` | 已有 checklist、publishTitle/publishHashtags/commentScript |
 | 复盘 | `Performance` | 已有 `completionRate`、`threeSecRate`、`avgWatchSec` |
-| 账号矩阵 | ❌ | 需新增 `Account`（阶段 3/4） |
+| 账号矩阵 | `Account` + `Schedule.accountId` | 已支持多账号排期与聚合对比 |
 
 ---
 
@@ -61,12 +61,12 @@
 9. ✅ **发布信息**：`Schedule` 增加 `publishTitle` / `publishHashtags` / `commentScript`
 10. ✅ **配音气口辅助**：`lib/voiceUtils.ts`，多音字同音转译、气口规则、长句停顿建议（一键复制 TTS 文案）
 
-### Phase 3 — 矩阵与增长
+### Phase 3（已完成，除自动化采集）— 矩阵与增长
 
-11. **账号矩阵 `Account`**：素材/排期挂账号，多账号数据对比
-12. **对标自动化采集**：`ScrapeTask` 扩展 `BENCHMARK` 类型，抓对标视频数据/文案入库
-13. **看板增强**：赛道 × 商品 × 素材的效果对比，爆款结构复用分析
-14. **成长阶段看板**：按四阶段路线显示当前进度与下一步动作
+11. ✅ **账号矩阵 `Account`**：`Schedule.accountId` + 账号 CRUD + `/accounts` 页，按账号聚合排期/发布/播放/GMV/佣金/完播率/转化率
+12. ⏸ **对标自动化采集（本次未做）**：需平台相关选择器与登录态，风控与维护成本高，暂缓；当前用对标库手动录入
+13. ✅ **看板增强**：`/insights` 页按赛道 × 平台 × 账号 × 商品 × 风格对比效果（均播/完播率/3 秒播放率/转化率/GMV/佣金）
+14. ✅ **成长阶段看板**：`lib/growthStage.ts` 四阶段评估，仪表盘展示当前阶段、进度、本阶段动作与下一步
 
 ---
 
@@ -79,4 +79,7 @@
 - [x] 复盘指标可录入并展示诊断结论
 - [x] 素材包可导出 zip（UTF-8 文件名，PowerShell/Node 解压校验通过）
 - [x] 发布前自检 + 发布信息可保存，红线未过禁止标记发布
-- [x] `npm test`（92 例）、`npx tsc --noEmit`、`npm run build` 全部通过
+- [x] 账号矩阵 CRUD 与按账号聚合指标
+- [x] 洞察页可按 5 个维度对比效果
+- [x] 仪表盘展示成长阶段与进度
+- [x] `npm test`（112 例）、`npx tsc --noEmit`、`npm run build` 全部通过

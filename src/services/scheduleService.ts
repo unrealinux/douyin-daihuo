@@ -4,12 +4,15 @@ import { prisma } from "@/lib/db";
 export async function listSchedules() {
   return prisma.schedule.findMany({
     orderBy: { scheduledAt: "asc" },
-    include: { asset: { include: { product: { select: { id: true, name: true } } } } },
+    include: {
+      account: { select: { id: true, name: true, platform: true } },
+      asset: { include: { product: { select: { id: true, name: true } } } },
+    },
   });
 }
 
-export async function createSchedule(assetId: number, scheduledAt: Date) {
-  return prisma.schedule.create({ data: { assetId, scheduledAt } });
+export async function createSchedule(assetId: number, scheduledAt: Date, accountId?: number) {
+  return prisma.schedule.create({ data: { assetId, scheduledAt, accountId: accountId ?? null } });
 }
 
 export async function updateSchedule(id: number, input: Partial<{
@@ -17,6 +20,7 @@ export async function updateSchedule(id: number, input: Partial<{
   publishStatus: PublishStatus;
   publishUrl?: string;
   publishedAt?: Date;
+  accountId?: number | null;
   checklist?: string;
   publishTitle?: string;
   publishHashtags?: string;

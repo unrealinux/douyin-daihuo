@@ -18,6 +18,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       publishStatus: body.publishStatus,
       publishUrl: body.publishUrl,
       publishedAt: body.publishedAt ? new Date(body.publishedAt) : undefined,
+      accountId:
+        body.accountId === null
+          ? null
+          : Number.isInteger(Number(body.accountId)) && Number(body.accountId) > 0
+            ? Number(body.accountId)
+            : undefined,
       checklist: typeof body.checklist === "string" ? body.checklist : undefined,
       publishTitle: typeof body.publishTitle === "string" ? body.publishTitle : undefined,
       publishHashtags: typeof body.publishHashtags === "string" ? body.publishHashtags : undefined,

@@ -17,6 +17,9 @@ const STATUS_STYLES: Record<string, { dot: string; text: string }> = {
   UP: { dot: "bg-accent", text: "bg-accent/15 text-accent" },
   STEADY: { dot: "bg-success", text: "bg-success/15 text-success" },
   DOWN: { dot: "bg-danger", text: "bg-danger/15 text-danger" },
+  ACTIVE: { dot: "bg-success", text: "bg-success/15 text-success" },
+  PAUSED: { dot: "bg-warning", text: "bg-warning/15 text-warning" },
+  DEAD: { dot: "bg-danger", text: "bg-danger/15 text-danger" },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -26,6 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
   PLANNED: "计划中", SKIPPED: "已跳过",
   QUEUED: "排队中", RUNNING: "运行中", SUCCESS: "成功", FAILED: "失败",
   UP: "上升", STEADY: "平稳", DOWN: "下降",
+  ACTIVE: "运营中", PAUSED: "已暂停", DEAD: "已弃用",
 };
 
 export default function StatusBadge({ status }: { status: string }) {

@@ -10,7 +10,9 @@ const links = [
   { href: "/benchmarks", label: "对标库" },
   { href: "/scripts", label: "脚本文案" },
   { href: "/assets", label: "素材排期" },
+  { href: "/accounts", label: "账号矩阵" },
   { href: "/calendar", label: "发布日历" },
+  { href: "/insights", label: "效果洞察" },
   { href: "/settings", label: "设置" },
 ];
 

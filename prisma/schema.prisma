@@ -70,6 +70,12 @@ enum AssetStatus {
   DROPPED
 }
 
+enum AccountStatus {
+  ACTIVE
+  PAUSED
+  DEAD
+}
+
 enum PublishStatus {
   PLANNED
   PUBLISHED
@@ -163,6 +169,8 @@ model Schedule {
   id            Int           @id @default(autoincrement())
   assetId       Int
   asset         Asset         @relation(fields: [assetId], references: [id])
+  accountId     Int?
+  account       Account?      @relation(fields: [accountId], references: [id])
   scheduledAt   DateTime
   publishStatus PublishStatus @default(PLANNED)
   publishUrl    String?
@@ -175,6 +183,25 @@ model Schedule {
   performance   Performance?
 
   @@index([scheduledAt])
+  @@index([accountId])
+}
+
+/// 账号矩阵：一个账号可承载多条排期，用于多账号数据对比。
+model Account {
+  id            Int           @id @default(autoincrement())
+  name          String
+  platform      Platform?
+  track         String?
+  handle        String?
+  status        AccountStatus @default(ACTIVE)
+  followerCount Int?
+  note          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  schedules     Schedule[]
+
+  @@index([status])
+  @@index([track])
 }
 
 model Performance {

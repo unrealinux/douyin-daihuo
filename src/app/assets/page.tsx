@@ -10,6 +10,7 @@ import { Button, Card, Input, Label, Select, Textarea } from "@/components/ui";
 import Reveal from "@/components/Reveal";
 import Spotlight from "@/components/Spotlight";
 import { diagnosePerformance } from "@/lib/performanceUtils";
+import { PLATFORM_LABEL } from "@/lib/selectionUtils";
 import {
   PUBLISH_CHECKLIST,
   checklistProgress,
@@ -28,11 +29,13 @@ interface Asset {
 
 interface Schedule {
   id: number; assetId?: number; scheduledAt: string; publishStatus: string; publishUrl?: string | null;
+  accountId?: number | null; account?: { id: number; name: string } | null;
   checklist?: string | null; publishTitle?: string | null; publishHashtags?: string | null; commentScript?: string | null;
   asset?: { title?: string | null; fileName: string } | null;
 }
 
 interface ProductOpt { id: number; name: string }
+interface AccountOpt { id: number; name: string; platform?: string | null }
 interface ScriptOpt { id: number; title?: string | null; product?: { id: number; name: string } | null }
 
 function toLocalInputValue(d: Date): string {
@@ -74,6 +77,7 @@ export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [products, setProducts] = useState<ProductOpt[]>([]);
+  const [accounts, setAccounts] = useState<AccountOpt[]>([]);
   const [scripts, setScripts] = useState<ScriptOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -90,23 +94,26 @@ export default function AssetsPage() {
   const [publishTitle, setPublishTitle] = useState("");
   const [publishHashtags, setPublishHashtags] = useState("");
   const [publishComment, setPublishComment] = useState("");
+  const [publishAccountId, setPublishAccountId] = useState("");
   const [perfTarget, setPerfTarget] = useState<Schedule | null>(null);
   const [perfForm, setPerfForm] = useState({ views: "", likes: "", comments: "", shares: "", favorites: "", orderCount: "", gmv: "", commission: "", completionRate: "", threeSecRate: "", avgWatchSec: "" });
 
   const load = useCallback(async () => {
     setErr("");
     try {
-      const [aRes, sRes, pRes, scRes] = await Promise.all([
+      const [aRes, sRes, pRes, scRes, acRes] = await Promise.all([
         fetch("/api/assets"),
         fetch("/api/schedules"),
         fetch("/api/products?status=ALL"),
         fetch("/api/scripts"),
+        fetch("/api/accounts"),
       ]);
       if (!aRes.ok || !sRes.ok) throw new Error("加载失败");
       setAssets(await aRes.json());
       setSchedules(await sRes.json());
       if (pRes.ok) setProducts(await pRes.json());
       if (scRes.ok) setScripts(await scRes.json());
+      if (acRes.ok) setAccounts(await acRes.json());
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -191,6 +198,7 @@ export default function AssetsPage() {
     setPublishTitle(s.publishTitle ?? "");
     setPublishHashtags(s.publishHashtags ?? "");
     setPublishComment(s.commentScript ?? s.asset?.title ?? "");
+    setPublishAccountId(s.accountId ? String(s.accountId) : "");
   };
 
   const toggleCheck = (key: string) => setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -207,6 +215,7 @@ export default function AssetsPage() {
         publishTitle: publishTitle || undefined,
         publishHashtags: publishHashtags || undefined,
         commentScript: publishComment || undefined,
+        accountId: publishAccountId ? Number(publishAccountId) : null,
       }),
     });
     if (!res.ok) {
@@ -230,6 +239,7 @@ export default function AssetsPage() {
         publishTitle: publishTitle || undefined,
         publishHashtags: publishHashtags || undefined,
         commentScript: publishComment || undefined,
+        accountId: publishAccountId ? Number(publishAccountId) : null,
       }),
     });
     if (!res.ok) {
@@ -458,6 +468,9 @@ export default function AssetsPage() {
                     <div className="min-w-0">
                       <span className="tnum font-medium text-fg">{new Date(s.scheduledAt).toLocaleString()}</span>
                       <span className="ml-3 text-fg-2">{title}</span>
+                      {s.account && (
+                        <span className="ml-2 rounded-md bg-white/5 px-1.5 py-0.5 text-[11px] text-fg-2">{s.account.name}</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={s.publishStatus} />
@@ -599,6 +612,17 @@ export default function AssetsPage() {
           </div>
 
           <div className="space-y-3 border-t border-line/50 pt-3">
+            <div>
+              <Label htmlFor="publish-account">发布账号</Label>
+              <Select id="publish-account" value={publishAccountId} onChange={(e) => setPublishAccountId(e.target.value)}>
+                <option value="">未指定</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}{a.platform ? ` · ${PLATFORM_LABEL[a.platform as keyof typeof PLATFORM_LABEL] ?? a.platform}` : ""}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <div>
               <Label htmlFor="publish-title">发布标题</Label>
               <Input id="publish-title" value={publishTitle} onChange={(e) => setPublishTitle(e.target.value)} placeholder="沿用脚本标题即可" />

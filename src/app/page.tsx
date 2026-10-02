@@ -20,6 +20,11 @@ interface Stats {
     favorites: number; orderCount: number; gmv: number; commission: number;
     avgCompletionRate: number | null; avgThreeSecRate: number | null; avgWatchSec: number | null;
   };
+  accountCount: number;
+  growth: {
+    stage: number; name: string; goal: string; period: string;
+    actions: string[]; next?: string; progress: number;
+  };
   pendingSchedules: Array<{
     id: number; scheduledAt: string; publishStatus: string;
     asset?: { id: number; title?: string | null; fileName: string } | null;
@@ -81,6 +86,7 @@ export default function Dashboard() {
     { label: "待生成脚本", value: stats.noScriptCount, href: "/scripts/generate", hint: "去生成文案", icon: "M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z", accent: false },
     { label: "本周排期", value: stats.weekSchedules, href: "/assets", hint: "查看排期", icon: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z", accent: false },
     { label: "近7天已发布", value: stats.recentPublished, href: "/assets", hint: "发布记录", icon: "M22 11.1V12a10 10 0 1 1-5.93-9.14M22 4L12 14l-3-3", accent: false },
+    { label: "运营账号", value: stats.accountCount, href: "/accounts", hint: "账号矩阵", icon: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 7a4 4 0 1 1 0 8 4 4 0 0 1 0-8z", accent: false },
   ] : [];
 
   return (
@@ -102,7 +108,7 @@ export default function Dashboard() {
       {err && <ErrorBanner message={err} onRetry={load} />}
 
       {stats ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
           {cards.map((c, i) => (
             <Reveal key={c.label} delay={i * 70}>
               <Link href={c.href} className="block h-full">
@@ -214,6 +220,28 @@ export default function Dashboard() {
                 actionLabel="去填写"
               />
             )}
+          </Card>
+        </Reveal>
+      )}
+
+      {stats && (
+        <Reveal delay={160}>
+          <Card className="p-4">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-1">
+              <h2 className="text-lg font-semibold tracking-tight">成长阶段</h2>
+              <span className="text-xs text-fg-2">{stats.growth.name} · 建议周期 {stats.growth.period}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5">
+                <div className="h-full rounded-full bg-accent transition-all duration-500 ease-out-expo" style={{ width: `${stats.growth.progress}%` }} />
+              </div>
+              <span className="tnum text-xs text-fg-2">{stats.growth.progress}%</span>
+            </div>
+            <p className="mt-2 text-sm text-fg-2">本阶段目标：{stats.growth.goal}</p>
+            <ul className="mt-2 space-y-1 text-sm text-white/80">
+              {stats.growth.actions.map((a) => <li key={a}>· {a}</li>)}
+            </ul>
+            {stats.growth.next && <p className="mt-2 text-xs text-cyan-300">下一步：{stats.growth.next}</p>}
           </Card>
         </Reveal>
       )}

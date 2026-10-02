@@ -10,7 +10,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const schedule = await createSchedule(Number(body.assetId), new Date(body.scheduledAt));
+    const accountId = Number(body.accountId);
+    const schedule = await createSchedule(
+      Number(body.assetId),
+      new Date(body.scheduledAt),
+      Number.isInteger(accountId) && accountId > 0 ? accountId : undefined
+    );
     return NextResponse.json(schedule, { status: 201 });
   } catch (e) {
     if (e instanceof SyntaxError) {
