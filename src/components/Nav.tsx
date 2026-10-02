@@ -9,6 +9,7 @@ const links = [
   { href: "/products", label: "商品库" },
   { href: "/scripts", label: "脚本文案" },
   { href: "/assets", label: "素材排期" },
+  { href: "/calendar", label: "发布日历" },
   { href: "/settings", label: "设置" },
 ];
 

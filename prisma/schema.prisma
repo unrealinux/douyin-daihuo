@@ -150,8 +150,25 @@ model Schedule {
   publishUrl    String?
   publishedAt   DateTime?
   createdAt     DateTime      @default(now())
+  performance   Performance?
 
   @@index([scheduledAt])
+}
+
+model Performance {
+  id          Int      @id @default(autoincrement())
+  scheduleId  Int      @unique
+  schedule    Schedule @relation(fields: [scheduleId], references: [id])
+  views       Int      @default(0)
+  likes       Int      @default(0)
+  comments    Int      @default(0)
+  shares      Int      @default(0)
+  favorites   Int      @default(0)
+  orderCount  Int      @default(0)
+  gmv         Float    @default(0)
+  commission  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Setting {

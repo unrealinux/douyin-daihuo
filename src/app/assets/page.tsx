@@ -77,6 +77,8 @@ export default function AssetsPage() {
   const [scheduleDraft, setScheduleDraft] = useState<Record<number, string>>({});
   const [publishTarget, setPublishTarget] = useState<Schedule | null>(null);
   const [publishUrl, setPublishUrl] = useState("");
+  const [perfTarget, setPerfTarget] = useState<Schedule | null>(null);
+  const [perfForm, setPerfForm] = useState({ views: "", likes: "", comments: "", shares: "", favorites: "", orderCount: "", gmv: "", commission: "" });
 
   const load = useCallback(async () => {
     setErr("");
@@ -187,6 +189,37 @@ export default function AssetsPage() {
     toast("已标记为已发布", "success");
     setPublishTarget(null);
     setPublishUrl("");
+    load();
+  };
+
+  const openPerformance = (s: Schedule) => {
+    setPerfTarget(s);
+    setPerfForm({ views: "", likes: "", comments: "", shares: "", favorites: "", orderCount: "", gmv: "", commission: "" });
+  };
+
+  const submitPerformance = async () => {
+    if (!perfTarget) return;
+    const toNum = (v: string) => (v === "" ? undefined : Number(v));
+    const res = await fetch(`/api/performance/${perfTarget.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        views: toNum(perfForm.views),
+        likes: toNum(perfForm.likes),
+        comments: toNum(perfForm.comments),
+        shares: toNum(perfForm.shares),
+        favorites: toNum(perfForm.favorites),
+        orderCount: toNum(perfForm.orderCount),
+        gmv: toNum(perfForm.gmv),
+        commission: toNum(perfForm.commission),
+      }),
+    });
+    if (!res.ok) {
+      toast("保存效果失败", "danger");
+      return;
+    }
+    toast("效果已保存", "success");
+    setPerfTarget(null);
     load();
   };
 
@@ -320,6 +353,15 @@ export default function AssetsPage() {
                                   发布
                                 </Button>
                               )}
+                              {s.publishStatus === "PUBLISHED" && (
+                                <Button
+                                  variant="ghost"
+                                  className="text-xs"
+                                  onClick={() => openPerformance(s)}
+                                >
+                                  记效果
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -376,6 +418,15 @@ export default function AssetsPage() {
                           }}
                         >
                           标记发布
+                        </Button>
+                      )}
+                      {s.publishStatus === "PUBLISHED" && (
+                        <Button
+                          variant="ghost"
+                          className="text-xs"
+                          onClick={() => openPerformance(s)}
+                        >
+                          记效果
                         </Button>
                       )}
                     </div>
@@ -458,6 +509,42 @@ export default function AssetsPage() {
           onChange={(e) => setPublishUrl(e.target.value)}
           placeholder="https://www.douyin.com/..."
         />
+      </Modal>
+
+      <Modal
+        open={!!perfTarget}
+        title="记录发布效果"
+        onClose={() => setPerfTarget(null)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPerfTarget(null)}>取消</Button>
+            <Button onClick={submitPerformance}>保存</Button>
+          </>
+        }
+      >
+        <div className="grid grid-cols-2 gap-3">
+          {([
+            ["views", "播放量"],
+            ["likes", "点赞"],
+            ["comments", "评论"],
+            ["shares", "分享"],
+            ["favorites", "收藏"],
+            ["orderCount", "成交单"],
+            ["gmv", "成交金额 ¥"],
+            ["commission", "佣金 ¥"],
+          ] as const).map(([key, label]) => (
+            <div key={key}>
+              <Label htmlFor={`perf-${key}`}>{label}</Label>
+              <Input
+                id={`perf-${key}`}
+                type="number"
+                min="0"
+                value={perfForm[key]}
+                onChange={(e) => setPerfForm((prev) => ({ ...prev, [key]: e.target.value }))}
+              />
+            </div>
+          ))}
+        </div>
       </Modal>
 
       <ConfirmDialog
