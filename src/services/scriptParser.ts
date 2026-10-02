@@ -1,8 +1,13 @@
+import { normalizeShots, type Shot } from "@/lib/shotUtils";
+
 export interface GeneratedScript {
   title: string;
   hook: string;
   body: string;
   shotScript: string;
+  shots: Shot[];
+  coverPrompt: string;
+  commentScript: string;
   hashtags: string[];
   durationSec: number;
 }
@@ -56,6 +61,9 @@ export function parseScriptJson(raw: string): GeneratedScript {
     hook: str(obj.hook),
     body: str(obj.body),
     shotScript: typeof obj.shotScript === "string" ? obj.shotScript : JSON.stringify(obj.shotScript ?? ""),
+    shots: normalizeShots(obj.shots),
+    coverPrompt: str(obj.coverPrompt),
+    commentScript: str(obj.commentScript) || str(obj.comment) || str(obj.commentScripts),
     hashtags: Array.isArray(obj.hashtags) ? obj.hashtags.map(String) : [],
     durationSec: num(obj.durationSec, 30),
   };

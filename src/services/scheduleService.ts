@@ -17,6 +17,10 @@ export async function updateSchedule(id: number, input: Partial<{
   publishStatus: PublishStatus;
   publishUrl?: string;
   publishedAt?: Date;
+  checklist?: string;
+  publishTitle?: string;
+  publishHashtags?: string;
+  commentScript?: string;
 }>) {
   return prisma.schedule.update({ where: { id }, data: input });
 }

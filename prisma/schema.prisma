@@ -128,6 +128,9 @@ model ScriptIdea {
   hook        String?
   body        String
   shotScript  String?
+  shots       String?
+  coverPrompt String?
+  commentScript String?
   hashtags    String?
   style       ScriptStyle  @default(SPOKEN)
   durationSec Int          @default(30)
@@ -164,6 +167,10 @@ model Schedule {
   publishStatus PublishStatus @default(PLANNED)
   publishUrl    String?
   publishedAt   DateTime?
+  checklist       String?
+  publishTitle    String?
+  publishHashtags String?
+  commentScript   String?
   createdAt     DateTime      @default(now())
   performance   Performance?
 

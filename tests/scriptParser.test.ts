@@ -38,6 +38,29 @@ describe("scriptParser", () => {
     expect(parseHashtagsJson(JSON.stringify(["#a", "#b"]))).toEqual(["#a", "#b"]);
   });
 
+  it("parses structured shots, cover prompt and comment script", () => {
+    const s = parseScriptJson(
+      JSON.stringify({
+        title: "t",
+        body: "b",
+        shots: [{ scene: "深宫夜读", camera: "推近", durationSec: 5 }],
+        coverPrompt: "竖版封面",
+        commentScript: "想看的扣1",
+      })
+    );
+    expect(s.shots).toHaveLength(1);
+    expect(s.shots[0].scene).toBe("深宫夜读");
+    expect(s.coverPrompt).toBe("竖版封面");
+    expect(s.commentScript).toBe("想看的扣1");
+  });
+
+  it("defaults new fields when absent", () => {
+    const s = parseScriptJson("{\"body\":\"b\"}");
+    expect(s.shots).toEqual([]);
+    expect(s.coverPrompt).toBe("");
+    expect(s.commentScript).toBe("");
+  });
+
   it("formatScriptPlaintext includes hook body and tags", () => {
     const text = formatScriptPlaintext({
       title: "标题",

@@ -10,14 +10,20 @@ import { useToast } from "@/components/Toast";
 import Modal from "@/components/Modal";
 import { Button, Card } from "@/components/ui";
 import { formatScriptPlaintext, parseHashtagsJson } from "@/services/scriptParser";
+import { parseShotsJson } from "@/lib/shotUtils";
+import { findPolyphones, suggestBreathMarks, toTtsText } from "@/lib/voiceUtils";
+import { similarityLevel, similarityPercent } from "@/lib/similarity";
 import Reveal from "@/components/Reveal";
 import Spotlight from "@/components/Spotlight";
 
 interface Script {
   id: number; title?: string | null; hook?: string | null; body: string;
-  shotScript?: string | null; hashtags?: string | null; status: string;
+  shotScript?: string | null; shots?: string | null; coverPrompt?: string | null;
+  commentScript?: string | null; hashtags?: string | null; status: string;
   style: string; durationSec: number; llmModel?: string | null; createdAt: string;
+  similarity?: number | null;
   product?: { id: number; name: string } | null;
+  benchmark?: { id: number; title: string; track?: string | null; platform?: string | null } | null;
 }
 
 async function copyText(text: string) {
@@ -78,6 +84,26 @@ function ScriptsList() {
     }
   };
 
+  const copyTtsScript = async (s: Script) => {
+    try {
+      await copyText(suggestBreathMarks(toTtsText(s.body)));
+      const hits = findPolyphones(s.body);
+      toast(hits.length ? `已复制配音文案（同音转译：${hits.map((h) => `${h.from}→${h.to}`).join("、")}）` : "已复制配音文案", "success");
+    } catch {
+      toast("复制失败", "danger");
+    }
+  };
+
+  const exportBundle = (s: Script) => {
+    const a = document.createElement("a");
+    a.href = `/api/scripts/${s.id}/bundle`;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast("素材包导出中（新文案/分段/分镜/封面/发布信息）", "success");
+  };
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -109,6 +135,7 @@ function ScriptsList() {
                 <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line/50 pt-3">
                   <Button onClick={() => setOpen(s)}>查看</Button>
                   <Button variant="ghost" onClick={() => copyScript(s)}>复制</Button>
+                  <Button variant="ghost" onClick={() => exportBundle(s)}>导出素材包</Button>
                   <Button variant="ghost" onClick={() => { setStatus(s, "ADOPTED"); }}>采用</Button>
                   <Button variant="ghost" className="ml-auto text-danger/80 hover:bg-danger/10 hover:text-danger" onClick={() => setDel(s)}>删除</Button>
                 </div>
@@ -129,6 +156,8 @@ function ScriptsList() {
         footer={open && (
           <>
             <Button variant="ghost" className="mr-auto text-danger/80 hover:text-danger" onClick={() => { setDel(open); setOpen(null); }}>删除</Button>
+            <Button variant="ghost" onClick={() => exportBundle(open)}>导出素材包</Button>
+            <Button variant="ghost" onClick={() => copyTtsScript(open)}>复制配音文案</Button>
             <Button variant="ghost" onClick={() => setStatus(open, "DISCARDED")}>废弃</Button>
             <Button variant="secondary" onClick={() => setStatus(open, "ADOPTED")}>采用</Button>
             <Button onClick={() => copyScript(open)}>复制全文</Button>
@@ -149,6 +178,46 @@ function ScriptsList() {
               <div>
                 <div className="text-xs text-fg-2">分镜脚本</div>
                 <p className="mt-1 whitespace-pre-wrap">{open.shotScript}</p>
+              </div>
+            )}
+            {(() => {
+              const shots = parseShotsJson(open.shots);
+              if (!shots.length) return null;
+              return (
+                <div>
+                  <div className="text-xs text-fg-2">结构化分镜（{shots.length} 镜）</div>
+                  <div className="mt-1 space-y-1.5">
+                    {shots.map((sh) => (
+                      <div key={sh.index} className="rounded-lg border border-line/50 bg-white/[0.02] p-2">
+                        <div className="text-xs text-fg-2">
+                          【{String(sh.index).padStart(2, "0")}】{[sh.size, sh.camera, sh.durationSec ? `${sh.durationSec}s` : ""].filter(Boolean).join(" · ")}
+                        </div>
+                        <div className="mt-0.5 text-white/80">{sh.scene}</div>
+                        {sh.narration && <div className="mt-0.5 text-xs text-fg-2">口播：{sh.narration}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            {open.coverPrompt && (
+              <div>
+                <div className="text-xs text-fg-2">封面提示词（3:4）</div>
+                <p className="mt-1 whitespace-pre-wrap">{open.coverPrompt}</p>
+              </div>
+            )}
+            {open.commentScript && (
+              <div>
+                <div className="text-xs text-fg-2">评论区带货话术</div>
+                <p className="mt-1 whitespace-pre-wrap">{open.commentScript}</p>
+              </div>
+            )}
+            {open.similarity != null && (
+              <div>
+                <div className="text-xs text-fg-2">二创相似度（对标：{open.benchmark?.title ?? "-"}）</div>
+                <p className={`mt-1 ${similarityLevel(open.similarity) === "safe" ? "text-success" : similarityLevel(open.similarity) === "caution" ? "text-warning" : "text-danger"}`}>
+                  {similarityPercent(open.similarity)}% · {similarityLevel(open.similarity) === "safe" ? "安全（<10%）" : similarityLevel(open.similarity) === "caution" ? "需谨慎" : "高风险，建议重写中段"}
+                </p>
               </div>
             )}
             {open.hashtags && (

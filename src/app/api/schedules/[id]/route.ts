@@ -18,6 +18,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       publishStatus: body.publishStatus,
       publishUrl: body.publishUrl,
       publishedAt: body.publishedAt ? new Date(body.publishedAt) : undefined,
+      checklist: typeof body.checklist === "string" ? body.checklist : undefined,
+      publishTitle: typeof body.publishTitle === "string" ? body.publishTitle : undefined,
+      publishHashtags: typeof body.publishHashtags === "string" ? body.publishHashtags : undefined,
+      commentScript: typeof body.commentScript === "string" ? body.commentScript : undefined,
     });
     return NextResponse.json(schedule);
   } catch (e) {

@@ -6,10 +6,17 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { EmptyState, ErrorBanner, PageHeader, Skeleton } from "@/components/PageChrome";
 import { useToast } from "@/components/Toast";
 import Modal from "@/components/Modal";
-import { Button, Card, Input, Label, Select } from "@/components/ui";
+import { Button, Card, Input, Label, Select, Textarea } from "@/components/ui";
 import Reveal from "@/components/Reveal";
 import Spotlight from "@/components/Spotlight";
 import { diagnosePerformance } from "@/lib/performanceUtils";
+import {
+  PUBLISH_CHECKLIST,
+  checklistProgress,
+  parseChecklist,
+  serializeChecklist,
+  type ChecklistState,
+} from "@/lib/publishChecklist";
 
 interface Asset {
   id: number; fileName: string; filePath: string; fileType: string; size: number;
@@ -21,6 +28,7 @@ interface Asset {
 
 interface Schedule {
   id: number; assetId?: number; scheduledAt: string; publishStatus: string; publishUrl?: string | null;
+  checklist?: string | null; publishTitle?: string | null; publishHashtags?: string | null; commentScript?: string | null;
   asset?: { title?: string | null; fileName: string } | null;
 }
 
@@ -78,6 +86,10 @@ export default function AssetsPage() {
   const [scheduleDraft, setScheduleDraft] = useState<Record<number, string>>({});
   const [publishTarget, setPublishTarget] = useState<Schedule | null>(null);
   const [publishUrl, setPublishUrl] = useState("");
+  const [checklist, setChecklist] = useState<ChecklistState>(() => parseChecklist(null));
+  const [publishTitle, setPublishTitle] = useState("");
+  const [publishHashtags, setPublishHashtags] = useState("");
+  const [publishComment, setPublishComment] = useState("");
   const [perfTarget, setPerfTarget] = useState<Schedule | null>(null);
   const [perfForm, setPerfForm] = useState({ views: "", likes: "", comments: "", shares: "", favorites: "", orderCount: "", gmv: "", commission: "", completionRate: "", threeSecRate: "", avgWatchSec: "" });
 
@@ -172,6 +184,39 @@ export default function AssetsPage() {
     load();
   };
 
+  const openPublish = (s: Schedule) => {
+    setPublishTarget(s);
+    setPublishUrl(s.publishUrl ?? "");
+    setChecklist(parseChecklist(s.checklist));
+    setPublishTitle(s.publishTitle ?? "");
+    setPublishHashtags(s.publishHashtags ?? "");
+    setPublishComment(s.commentScript ?? s.asset?.title ?? "");
+  };
+
+  const toggleCheck = (key: string) => setChecklist((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const publishProgress = checklistProgress(checklist);
+
+  const saveChecklist = async () => {
+    if (!publishTarget) return;
+    const res = await fetch(`/api/schedules/${publishTarget.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        checklist: serializeChecklist(checklist),
+        publishTitle: publishTitle || undefined,
+        publishHashtags: publishHashtags || undefined,
+        commentScript: publishComment || undefined,
+      }),
+    });
+    if (!res.ok) {
+      toast("保存自检失败", "danger");
+      return;
+    }
+    toast("自检已保存", "success");
+    load();
+  };
+
   const confirmPublish = async () => {
     if (!publishTarget) return;
     const res = await fetch(`/api/schedules/${publishTarget.id}`, {
@@ -181,6 +226,10 @@ export default function AssetsPage() {
         publishStatus: "PUBLISHED",
         publishUrl: publishUrl || undefined,
         publishedAt: new Date().toISOString(),
+        checklist: serializeChecklist(checklist),
+        publishTitle: publishTitle || undefined,
+        publishHashtags: publishHashtags || undefined,
+        commentScript: publishComment || undefined,
       }),
     });
     if (!res.ok) {
@@ -345,14 +394,19 @@ export default function AssetsPage() {
                             <span className="tnum text-fg-2">{new Date(s.scheduledAt).toLocaleString()}</span>
                             <div className="flex items-center gap-1">
                               <StatusBadge status={s.publishStatus} />
+                              {(() => {
+                                const cp = checklistProgress(parseChecklist(s.checklist));
+                                return (
+                                  <span className={`text-[10px] ${cp.redlineMissing.length ? "text-danger" : cp.ready ? "text-success" : "text-fg-2"}`}>
+                                    自检 {cp.done}/{cp.total}
+                                  </span>
+                                );
+                              })()}
                               {s.publishStatus === "PLANNED" && (
                                 <Button
                                   variant="ghost"
                                   className="text-xs"
-                                  onClick={() => {
-                                    setPublishTarget(s);
-                                    setPublishUrl(s.publishUrl ?? "");
-                                  }}
+                                  onClick={() => openPublish(s)}
                                 >
                                   发布
                                 </Button>
@@ -407,6 +461,14 @@ export default function AssetsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={s.publishStatus} />
+                      {(() => {
+                        const cp = checklistProgress(parseChecklist(s.checklist));
+                        return (
+                          <span className={`text-[10px] ${cp.redlineMissing.length ? "text-danger" : cp.ready ? "text-success" : "text-fg-2"}`}>
+                            自检 {cp.done}/{cp.total}
+                          </span>
+                        );
+                      })()}
                       {s.publishUrl && (
                         <a href={s.publishUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-cyan-300 transition-colors hover:text-cyan">
                           链接
@@ -416,10 +478,7 @@ export default function AssetsPage() {
                         <Button
                           variant="ghost"
                           className="text-xs"
-                          onClick={() => {
-                            setPublishTarget(s);
-                            setPublishUrl(s.publishUrl ?? "");
-                          }}
+                          onClick={() => openPublish(s)}
                         >
                           标记发布
                         </Button>
@@ -497,22 +556,72 @@ export default function AssetsPage() {
 
       <Modal
         open={!!publishTarget}
-        title="标记已发布"
+        title="发布前自检与标记发布"
         onClose={() => setPublishTarget(null)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setPublishTarget(null)}>取消</Button>
-            <Button onClick={confirmPublish}>确认发布</Button>
+            <Button variant="ghost" onClick={saveChecklist}>保存自检</Button>
+            <Button onClick={confirmPublish} disabled={publishProgress.redlineMissing.length > 0}>
+              确认发布
+            </Button>
           </>
         }
       >
-        <Label htmlFor="publish-url">抖音链接（可留空）</Label>
-        <Input
-          id="publish-url"
-          value={publishUrl}
-          onChange={(e) => setPublishUrl(e.target.value)}
-          placeholder="https://www.douyin.com/..."
-        />
+        <div className="space-y-4">
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm text-fg-2">发布前自检清单</span>
+              <span className={`text-xs ${publishProgress.redlineMissing.length ? "text-danger" : publishProgress.ready ? "text-success" : "text-warning"}`}>
+                {publishProgress.done}/{publishProgress.total}
+                {publishProgress.redlineMissing.length ? " · 红线未过" : publishProgress.ready ? " · 可发布" : " · 待完成"}
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {PUBLISH_CHECKLIST.map((item) => (
+                <label key={item.key} className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 rounded accent-accent"
+                    checked={!!checklist[item.key]}
+                    onChange={() => toggleCheck(item.key)}
+                  />
+                  <span className={item.redline ? "text-fg" : "text-fg-2"}>
+                    {item.label}
+                    {item.redline && <span className="ml-1 text-[10px] text-danger">红线</span>}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {publishProgress.redlineMissing.length > 0 && (
+              <p className="mt-2 text-xs text-danger">完成全部红线项后才能标记发布：{publishProgress.redlineMissing.join("、")}</p>
+            )}
+          </div>
+
+          <div className="space-y-3 border-t border-line/50 pt-3">
+            <div>
+              <Label htmlFor="publish-title">发布标题</Label>
+              <Input id="publish-title" value={publishTitle} onChange={(e) => setPublishTitle(e.target.value)} placeholder="沿用脚本标题即可" />
+            </div>
+            <div>
+              <Label htmlFor="publish-tags">话题标签</Label>
+              <Input id="publish-tags" value={publishHashtags} onChange={(e) => setPublishHashtags(e.target.value)} placeholder="#历史 #读书" />
+            </div>
+            <div>
+              <Label htmlFor="publish-comment">评论区带货话术</Label>
+              <Textarea id="publish-comment" rows={2} value={publishComment} onChange={(e) => setPublishComment(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="publish-url">抖音链接（可留空）</Label>
+              <Input
+                id="publish-url"
+                value={publishUrl}
+                onChange={(e) => setPublishUrl(e.target.value)}
+                placeholder="https://www.douyin.com/..."
+              />
+            </div>
+          </div>
+        </div>
       </Modal>
 
       <Modal

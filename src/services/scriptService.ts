@@ -13,7 +13,7 @@ const STYLE_LABEL: Record<ScriptStyle, string> = {
 /** 系统提示词内置 SOP 合规红线：锁两头破中间 / 基于正史 / 生图禁画书面 / 禁止搬运。 */
 export const SCRIPT_SYSTEM_PROMPT = [
   "你是抖音/视频号带货短视频脚本专家。根据用户提供的商品信息生成带货脚本，只输出 JSON，不要输出其他内容。",
-  "JSON 字段：title(标题), hook(黄金3秒钩子), body(口播正文), shotScript(分镜脚本,用\\n分隔每行), hashtags(话题标签数组,每个以#开头), durationSec(数字)。",
+  "JSON 字段：title(标题), hook(黄金3秒钩子), body(口播正文), shotScript(分镜脚本,用\\n分隔每行), shots(分镜数组,每项{index,scene(画面/生图提示词),camera(镜头),durationSec,size(默认9:16),narration(对应口播)}), coverPrompt(3:4封面提示词), commentScript(评论区带货话术), hashtags(话题标签数组,每个以#开头), durationSec(数字)。",
   "必须遵守以下合规红线：",
   "1. 锁两头、破中间：若提供了对标文案，只借鉴其前 3 秒的悬念结构，中段必须完全重写，与对标文案相似度压到 10% 以下，严禁照抄搬运。",
   "2. 史实准确：涉及历史/国学内容必须基于正史，严禁拼凑野史、编造史实或人物。",
@@ -69,6 +69,9 @@ export async function generateScript(input: GenerateInput) {
       hook: parsed.hook || null,
       body: parsed.body,
       shotScript: parsed.shotScript || null,
+      shots: parsed.shots.length ? JSON.stringify(parsed.shots) : null,
+      coverPrompt: parsed.coverPrompt || null,
+      commentScript: parsed.commentScript || null,
       hashtags: parsed.hashtags.length ? JSON.stringify(parsed.hashtags) : null,
       style: input.style,
       durationSec: parsed.durationSec,

@@ -14,10 +14,10 @@
 |----------|----------|--------|
 | ① 账号与选品准备 | 商品库（手动/CSV/爬虫）、佣金率、日销、趋势、状态流转；**无赛道/平台维度，无选品评分** | 🟡 60% |
 | ② 对标拆解 | **完全没有**（无对标视频库、无选题资产库、无拆解字段） | 🔴 0% |
-| ③ 二创文案 | LLM 生成标题/钩子/口播/分镜/标签，风格 4 种、时长、批量；**无忌讳红线约束、无对标来源、无相似度校验** | 🟡 55% |
-| ④ 素材制作 | 素材上传 + 封面 + 关联商品/脚本；**无分镜提示词结构化输出、无封面提示词、无发布信息、无剪映草稿概念** | 🟡 40% |
-| ⑤ 发布运营 | 排期时间线、发布状态、发布链接、发布日历；**无发布前自检清单、无评论区话术** | 🟡 60% |
-| ⑥ 数据复盘 | Performance 表：播放/点赞/评论/分享/收藏/订单/GMV/佣金 + 汇总；**无完播率、无 3 秒播放率、无平均播放时长、无诊断结论** | 🟡 65% |
+| ③ 二创文案 | LLM 生成标题/钩子/口播/分镜/标签/分镜数组/封面提示词/评论话术，风格 4 种、时长、批量；内置 SOP 红线约束、对标来源、相似度校验 | ✅ 90% |
+| ④ 素材制作 | 素材上传 + 封面 + 关联商品/脚本；结构化分镜 + 封面提示词 + 一键导出 5 文件素材包 zip（剪映草稿仍为人工） | ✅ 85% |
+| ⑤ 发布运营 | 排期时间线、发布状态、发布链接、发布日历；发布前自检清单（3 条红线门禁）+ 发布标题/话题/评论话术 | ✅ 90% |
+| ⑥ 数据复盘 | 播放/点赞/评论/分享/收藏/订单/GMV/佣金 + 完播率/3 秒播放率/平均时长 + 自动诊断 | ✅ 90% |
 
 ### SOP 关键资产 vs 数据模型
 
@@ -25,10 +25,10 @@
 |----------|----------|------|
 | 商品库 + 选品标准 | `Product` | 缺 `platform`、`track`；缺选品评分 |
 | **爆款选题资产库** | ❌ | 需新增 `Benchmark`（对标视频 + 逐字稿 + 数据 + 拆解） |
-| 脚本/二创 | `ScriptIdea` | 缺 `benchmarkId`、`similarity` |
-| 素材 | `Asset` | 缺分镜提示词/封面提示词/发布信息的结构化落盘 |
-| 发布 | `Schedule` | 缺 checklist、publishTitle/hashtags/commentScript |
-| 复盘 | `Performance` | 缺 `completionRate`、`threeSecRate`、`avgWatchSec` |
+| 脚本/二创 | `ScriptIdea` | 已有 `benchmarkId`、`similarity`、`shots`、`coverPrompt`、`commentScript` |
+| 素材 | `Asset` | 已有结构化分镜 + 封面提示词 + 素材包导出 |
+| 发布 | `Schedule` | 已有 checklist、publishTitle/publishHashtags/commentScript |
+| 复盘 | `Performance` | 已有 `completionRate`、`threeSecRate`、`avgWatchSec` |
 | 账号矩阵 | ❌ | 需新增 `Account`（阶段 3/4） |
 
 ---
@@ -53,13 +53,13 @@
    - `performanceUtils.diagnosePerformance` 按 SOP 基线（完播 >20%、3S >30%、播放 <200 换号）输出诊断与建议
    - 仪表盘 / 素材页展示诊断
 
-### Phase 2 — 生产与发布提效
+### Phase 2（已完成）— 生产与发布提效
 
-6. **标准化素材包导出**：按 SOP 文件清单（`新文案.txt` / `分段内容.txt` / `分镜提示词.txt` / `封面提示词.txt` / `发布信息.md`）导出 zip 或分文件下载
-7. **分镜结构化**：`ScriptIdea.shotScript` 从字符串升级为结构化分镜数组（画面描述/镜头/时长/尺寸/生图提示词）
-8. **发布前自检清单**：`Schedule.checklist` JSON，内置 SOP 清单（画面/字幕/配音/挂车/无书封/史实）
-9. **发布信息**：`Schedule` 增加标题、话题标签、评论区话术
-10. **配音气口辅助**：文案标注破折号/省略号节奏，多音字同音转译表
+6. ✅ **标准化素材包导出**：`lib/scriptBundle.ts` + `lib/zip.ts`，按 SOP 文件清单产出 5 个文件并打包 zip
+7. ✅ **分镜结构化**：`lib/shotUtils.ts`，`shots` 结构化字段（画面/镜头/时长/画幅/口播）
+8. ✅ **发布前自检清单**：`lib/publishChecklist.ts` + `Schedule.checklist`，3 条红线未过不允许发布
+9. ✅ **发布信息**：`Schedule` 增加 `publishTitle` / `publishHashtags` / `commentScript`
+10. ✅ **配音气口辅助**：`lib/voiceUtils.ts`，多音字同音转译、气口规则、长句停顿建议（一键复制 TTS 文案）
 
 ### Phase 3 — 矩阵与增长
 
@@ -70,11 +70,13 @@
 
 ---
 
-## 3. 本次（Phase 1）验收标准
+## 3. 验收情况
 
-- [ ] 新增字段与模型可在 SQLite 上 `db:push` 成功
-- [ ] 选品评分、相似度、复盘诊断均为纯函数并有单测
-- [ ] 对标库可增删改查、可按赛道/平台/关键词筛选
-- [ ] 生成脚本时可选对标来源，落库 `benchmarkId` + `similarity`
-- [ ] 复盘指标可录入并展示诊断结论
-- [ ] `npm test`、`npx tsc --noEmit`、`npm run build` 全部通过
+- [x] 新增字段与模型可在 SQLite 上 `db:push` 成功
+- [x] 选品评分、相似度、复盘诊断、分镜解析、素材包、自检清单、配音工具均为纯函数并有单测
+- [x] 对标库可增删改查、可按赛道/平台/关键词筛选
+- [x] 生成脚本时可选对标来源，落库 `benchmarkId` + `similarity`
+- [x] 复盘指标可录入并展示诊断结论
+- [x] 素材包可导出 zip（UTF-8 文件名，PowerShell/Node 解压校验通过）
+- [x] 发布前自检 + 发布信息可保存，红线未过禁止标记发布
+- [x] `npm test`（92 例）、`npx tsc --noEmit`、`npm run build` 全部通过
