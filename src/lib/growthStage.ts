@@ -90,7 +90,7 @@ export function evaluateGrowthStage(input: GrowthInput): GrowthStageInfo {
         "不要一条没爆就换书，把一款爆品的流量吃透",
       ],
       next: "形成标准化单品模板后，开始批量测品",
-      progress: clamp((monthsActive / 3) * 100),
+      progress: clamp(50 + (monthsActive / 3) * 50),
     };
   }
 

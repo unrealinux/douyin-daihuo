@@ -20,6 +20,13 @@ describe("evaluateGrowthStage", () => {
     expect(g.stage).toBe(2);
   });
 
+  it("stage 2 starts at 50% and rises with time", () => {
+    const entry = evaluateGrowthStage({ totalOrders: 60, publishedCount: 30, monthsActive: 0, categoryCount: 1 });
+    const later = evaluateGrowthStage({ totalOrders: 60, publishedCount: 30, monthsActive: 1.5, categoryCount: 1 });
+    expect(entry.progress).toBe(50);
+    expect(later.progress).toBe(75);
+  });
+
   it("stage 3 after 3 months", () => {
     const g = evaluateGrowthStage({ totalOrders: 200, publishedCount: 60, monthsActive: 3.5, categoryCount: 2 });
     expect(g.stage).toBe(3);
