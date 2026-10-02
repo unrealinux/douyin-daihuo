@@ -18,6 +18,7 @@ interface Stats {
   perfSummary: {
     count: number; views: number; likes: number; comments: number; shares: number;
     favorites: number; orderCount: number; gmv: number; commission: number;
+    avgCompletionRate: number | null; avgThreeSecRate: number | null; avgWatchSec: number | null;
   };
   pendingSchedules: Array<{
     id: number; scheduledAt: string; publishStatus: string;
@@ -175,15 +176,33 @@ export default function Dashboard() {
             {stats.perfSummary.count > 0 ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {[
-                  { label: "已测内容", display: fmt(stats.perfSummary.count) },
-                  { label: "总播放", display: fmt(stats.perfSummary.views) },
-                  { label: "总点赞", display: fmt(stats.perfSummary.likes) },
-                  { label: "成交单", display: fmt(stats.perfSummary.orderCount) },
-                  { label: "累计 GMV", display: `¥${fmt(stats.perfSummary.gmv)}` },
+                  { label: "已测内容", display: fmt(stats.perfSummary.count), warn: false },
+                  { label: "总播放", display: fmt(stats.perfSummary.views), warn: false },
+                  { label: "总点赞", display: fmt(stats.perfSummary.likes), warn: false },
+                  { label: "成交单", display: fmt(stats.perfSummary.orderCount), warn: false },
+                  { label: "累计 GMV", display: `¥${fmt(stats.perfSummary.gmv)}`, warn: false },
+                  ...(stats.perfSummary.avgCompletionRate != null
+                    ? [{
+                        label: "平均完播率",
+                        display: `${stats.perfSummary.avgCompletionRate.toFixed(1)}%`,
+                        warn: stats.perfSummary.avgCompletionRate < 20,
+                      }]
+                    : []),
+                  ...(stats.perfSummary.avgThreeSecRate != null
+                    ? [{
+                        label: "平均 3 秒播放率",
+                        display: `${stats.perfSummary.avgThreeSecRate.toFixed(1)}%`,
+                        warn: stats.perfSummary.avgThreeSecRate < 30,
+                      }]
+                    : []),
+                  ...(stats.perfSummary.avgWatchSec != null
+                    ? [{ label: "平均播放时长", display: `${stats.perfSummary.avgWatchSec.toFixed(1)}s`, warn: false }]
+                    : []),
                 ].map((m) => (
                   <div key={m.label} className="rounded-xl border border-line/60 bg-white/[0.02] p-3">
                     <div className="text-xs text-fg-2">{m.label}</div>
-                    <div className="tnum mt-1 text-xl font-semibold text-fg">{m.display}</div>
+                    <div className={`tnum mt-1 text-xl font-semibold ${m.warn ? "text-warning" : "text-fg"}`}>{m.display}</div>
+                    {m.warn && <div className="mt-0.5 text-[11px] text-warning">低于合格线</div>}
                   </div>
                 ))}
               </div>

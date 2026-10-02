@@ -9,6 +9,7 @@ import Modal from "@/components/Modal";
 import { Button, Card, Input, Label, Select } from "@/components/ui";
 import Reveal from "@/components/Reveal";
 import Spotlight from "@/components/Spotlight";
+import { diagnosePerformance } from "@/lib/performanceUtils";
 
 interface Asset {
   id: number; fileName: string; filePath: string; fileType: string; size: number;
@@ -78,7 +79,7 @@ export default function AssetsPage() {
   const [publishTarget, setPublishTarget] = useState<Schedule | null>(null);
   const [publishUrl, setPublishUrl] = useState("");
   const [perfTarget, setPerfTarget] = useState<Schedule | null>(null);
-  const [perfForm, setPerfForm] = useState({ views: "", likes: "", comments: "", shares: "", favorites: "", orderCount: "", gmv: "", commission: "" });
+  const [perfForm, setPerfForm] = useState({ views: "", likes: "", comments: "", shares: "", favorites: "", orderCount: "", gmv: "", commission: "", completionRate: "", threeSecRate: "", avgWatchSec: "" });
 
   const load = useCallback(async () => {
     setErr("");
@@ -194,7 +195,7 @@ export default function AssetsPage() {
 
   const openPerformance = (s: Schedule) => {
     setPerfTarget(s);
-    setPerfForm({ views: "", likes: "", comments: "", shares: "", favorites: "", orderCount: "", gmv: "", commission: "" });
+    setPerfForm({ views: "", likes: "", comments: "", shares: "", favorites: "", orderCount: "", gmv: "", commission: "", completionRate: "", threeSecRate: "", avgWatchSec: "" });
   };
 
   const submitPerformance = async () => {
@@ -212,6 +213,9 @@ export default function AssetsPage() {
         orderCount: toNum(perfForm.orderCount),
         gmv: toNum(perfForm.gmv),
         commission: toNum(perfForm.commission),
+        completionRate: toNum(perfForm.completionRate),
+        threeSecRate: toNum(perfForm.threeSecRate),
+        avgWatchSec: toNum(perfForm.avgWatchSec),
       }),
     });
     if (!res.ok) {
@@ -532,6 +536,9 @@ export default function AssetsPage() {
             ["orderCount", "成交单"],
             ["gmv", "成交金额 ¥"],
             ["commission", "佣金 ¥"],
+            ["completionRate", "完播率 %"],
+            ["threeSecRate", "3 秒播放率 %"],
+            ["avgWatchSec", "平均播放时长 秒"],
           ] as const).map(([key, label]) => (
             <div key={key}>
               <Label htmlFor={`perf-${key}`}>{label}</Label>
@@ -545,6 +552,24 @@ export default function AssetsPage() {
             </div>
           ))}
         </div>
+        {(() => {
+          const n = (v: string) => (v === "" ? undefined : Number(v));
+          const d = diagnosePerformance({
+            views: n(perfForm.views),
+            completionRate: n(perfForm.completionRate),
+            threeSecRate: n(perfForm.threeSecRate),
+          });
+          if (d.level === "unknown") {
+            return <p className="mt-3 text-xs text-fg-2">合格线：完播率 &gt;20%、3 秒播放率 &gt;30%</p>;
+          }
+          return (
+            <div className={`mt-3 rounded-lg border p-3 text-xs ${d.level === "good" ? "border-success/30 bg-success/10 text-success" : "border-warning/30 bg-warning/10 text-warning"}`}>
+              <p className="font-medium">{d.level === "good" ? "复盘诊断：指标达标" : "复盘诊断：需优化"}</p>
+              {d.issues.map((s) => <p key={s} className="mt-1">· {s}</p>)}
+              {d.suggestions.map((s) => <p key={s} className="mt-1 opacity-90">→ {s}</p>)}
+            </div>
+          );
+        })()}
       </Modal>
 
       <ConfirmDialog

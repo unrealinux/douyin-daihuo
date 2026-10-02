@@ -1,4 +1,4 @@
-import { ProductStatus, Trend } from "@prisma/client";
+import { Platform, ProductStatus, Trend } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { parseProductsCsv } from "./csvService";
 import type { CsvProductRow } from "./csvService";
@@ -6,13 +6,15 @@ import type { CsvProductRow } from "./csvService";
 export interface ProductFilters {
   status?: ProductStatus | "ALL";
   category?: string;
+  track?: string;
+  platform?: Platform | "ALL";
   minRate?: number;
   sort?: "commissionRate" | "dailySales" | "updatedAt";
   order?: "asc" | "desc";
   keyword?: string;
 }
 
-export function filterProducts<T extends { name: string; category?: string | null; commissionRate?: number | null; dailySales?: number | null; status: string; updatedAt: Date }>(
+export function filterProducts<T extends { name: string; category?: string | null; track?: string | null; platform?: string | null; commissionRate?: number | null; dailySales?: number | null; status: string; updatedAt: Date }>(
   items: T[],
   filters: ProductFilters
 ): T[] {
@@ -22,6 +24,12 @@ export function filterProducts<T extends { name: string; category?: string | nul
   }
   if (filters.category) {
     out = out.filter((p) => p.category === filters.category);
+  }
+  if (filters.track) {
+    out = out.filter((p) => p.track === filters.track);
+  }
+  if (filters.platform && filters.platform !== "ALL") {
+    out = out.filter((p) => p.platform === filters.platform);
   }
   if (filters.minRate !== undefined) {
     out = out.filter((p) => (p.commissionRate ?? 0) >= filters.minRate!);
@@ -66,6 +74,8 @@ export interface ProductInput {
   commissionRate?: number;
   dailySales?: number;
   trend?: Trend;
+  platform?: Platform | null;
+  track?: string | null;
   note?: string;
   status?: ProductStatus;
 }

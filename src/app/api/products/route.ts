@@ -6,6 +6,8 @@ export async function GET(req: NextRequest) {
   const filters: ProductFilters = {
     status: (sp.get("status") as ProductFilters["status"]) ?? undefined,
     category: sp.get("category") ?? undefined,
+    track: sp.get("track") ?? undefined,
+    platform: (sp.get("platform") as ProductFilters["platform"]) ?? undefined,
     minRate: sp.get("minRate") && Number.isFinite(Number(sp.get("minRate"))) ? Number(sp.get("minRate")) : undefined,
     sort: (sp.get("sort") as ProductFilters["sort"]) ?? undefined,
     order: (sp.get("order") as ProductFilters["order"]) ?? undefined,

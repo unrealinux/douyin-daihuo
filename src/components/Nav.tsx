@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/", label: "仪表盘" },
   { href: "/products", label: "商品库" },
+  { href: "/benchmarks", label: "对标库" },
   { href: "/scripts", label: "脚本文案" },
   { href: "/assets", label: "素材排期" },
   { href: "/calendar", label: "发布日历" },

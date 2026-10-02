@@ -6,9 +6,15 @@ import { useSearchParams } from "next/navigation";
 import { Button, Card, Input, Label, Select } from "@/components/ui";
 import Reveal from "@/components/Reveal";
 import Spotlight from "@/components/Spotlight";
+import { PLATFORM_LABEL } from "@/lib/selectionUtils";
+import { similarityLevel, similarityPercent } from "@/lib/similarity";
 
 interface Product {
   id: number; name: string; note?: string | null; category?: string | null;
+}
+
+interface BenchmarkOption {
+  id: number; title: string; track?: string | null; platform?: string | null;
 }
 
 const STYLES = [
@@ -21,15 +27,18 @@ const STYLES = [
 function GenerateForm() {
   const sp = useSearchParams();
   const preselect = sp.get("productId");
+  const preBenchmark = sp.get("benchmarkId");
 
   const [mode, setMode] = useState<"manual" | "product">(preselect ? "product" : "manual");
   const [products, setProducts] = useState<Product[]>([]);
+  const [benchmarks, setBenchmarks] = useState<BenchmarkOption[]>([]);
+  const [benchmarkId, setBenchmarkId] = useState(preBenchmark ?? "");
   const [productId, setProductId] = useState(preselect ?? "");
   const [productName, setProductName] = useState("");
   const [sellingPoints, setSellingPoints] = useState("");
   const [style, setStyle] = useState("SPOKEN");
   const [duration, setDuration] = useState("30");
-  const [resultId, setResultId] = useState<number | null>(null);
+  const [result, setResult] = useState<{ id: number; similarity?: number | null } | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -38,10 +47,14 @@ function GenerateForm() {
       .then((r) => (r.ok ? r.json() : []))
       .then(setProducts)
       .catch(() => setProducts([]));
+    fetch("/api/benchmarks?sort=hot")
+      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((d) => setBenchmarks(d.items ?? []))
+      .catch(() => setBenchmarks([]));
   }, []);
 
   const generate = async () => {
-    setLoading(true); setErr(""); setResultId(null);
+    setLoading(true); setErr(""); setResult(null);
     if (mode === "product" && !productId) {
       setErr("请选择商品");
       setLoading(false);
@@ -52,9 +65,10 @@ function GenerateForm() {
       setLoading(false);
       return;
     }
+    const bench = benchmarkId ? { benchmarkId: Number(benchmarkId) } : {};
     const payload = mode === "product"
-      ? { productId: Number(productId), style, durationSec: Number(duration), sellingPoints: sellingPoints || undefined }
-      : { productName, sellingPoints, style, durationSec: Number(duration) };
+      ? { productId: Number(productId), style, durationSec: Number(duration), sellingPoints: sellingPoints || undefined, ...bench }
+      : { productName, sellingPoints, style, durationSec: Number(duration), ...bench };
     try {
       const res = await fetch("/api/scripts/generate", {
         method: "POST",
@@ -62,7 +76,7 @@ function GenerateForm() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (res.ok) setResultId(data.id);
+      if (res.ok) setResult({ id: data.id, similarity: data.similarity });
       else setErr(data.error ?? "生成失败");
     } catch (e) {
       setErr(String(e));
@@ -135,16 +149,45 @@ function GenerateForm() {
               </div>
             </div>
 
+            <div>
+              <Label>引用对标（可选，锁两头破中间重写）</Label>
+              <Select value={benchmarkId} onChange={(e) => setBenchmarkId(e.target.value)}>
+                <option value="">不引用</option>
+                {benchmarks.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.title}{b.track ? ` · ${b.track}` : ""}{b.platform ? ` · ${PLATFORM_LABEL[b.platform as keyof typeof PLATFORM_LABEL] ?? b.platform}` : ""}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1 text-xs text-fg-2">引用后会按对标结构二创，并自动核算相似度（目标 &lt;10%）</p>
+            </div>
+
             <Button onClick={generate} disabled={loading}>
               {loading ? "生成中..." : "生成"}
             </Button>
-            {resultId != null && (
-              <p className="text-sm text-success">
-                已生成脚本 #{resultId} ·{" "}
-                <Link href={`/scripts?id=${resultId}`} className="text-cyan-300 underline hover:text-cyan">
-                  查看脚本
-                </Link>
-              </p>
+            {result && (
+              <div className="text-sm">
+                <p className="text-success">
+                  已生成脚本 #{result.id} ·{" "}
+                  <Link href={`/scripts?id=${result.id}`} className="text-cyan-300 underline hover:text-cyan">
+                    查看脚本
+                  </Link>
+                </p>
+                {result.similarity != null && (
+                  <p
+                    className={
+                      similarityLevel(result.similarity) === "safe"
+                        ? "mt-1 text-success"
+                        : similarityLevel(result.similarity) === "caution"
+                          ? "mt-1 text-warning"
+                          : "mt-1 text-danger"
+                    }
+                  >
+                    与对标相似度 {similarityPercent(result.similarity)}% ·{" "}
+                    {similarityLevel(result.similarity) === "safe" ? "安全（<10%）" : similarityLevel(result.similarity) === "caution" ? "需谨慎，建议再改写（目标 <10%）" : "高风险，务必重写中段"}
+                  </p>
+                )}
+              </div>
             )}
             {err && <p className="text-sm text-danger">{err}</p>}
           </Card>

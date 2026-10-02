@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
-import { normalizePerformanceInput, type PerformanceInput } from "@/lib/performanceUtils";
+import { PERFORMANCE_KEYS, normalizePerformanceInput, type PerformanceInput } from "@/lib/performanceUtils";
 
-const KEYS = ["views", "likes", "comments", "shares", "favorites", "orderCount", "gmv", "commission"] as const;
+const KEYS = PERFORMANCE_KEYS;
 
 /** 为指定排期新增或更新效果数据（1:1）。只更新显式传入的指标，未传字段保持不变。 */
 export async function upsertPerformance(scheduleId: number, input: PerformanceInput) {
@@ -40,6 +40,10 @@ export interface PerformanceSummary {
   orderCount: number;
   gmv: number;
   commission: number;
+  /** 平均值，仅统计已录入的记录；无数据为 null。 */
+  avgCompletionRate: number | null;
+  avgThreeSecRate: number | null;
+  avgWatchSec: number | null;
 }
 
 /** 全量聚合效果指标，供仪表盘展示。 */
@@ -56,6 +60,11 @@ export async function getPerformanceSummary(): Promise<PerformanceSummary> {
       gmv: true,
       commission: true,
     },
+    _avg: {
+      completionRate: true,
+      threeSecRate: true,
+      avgWatchSec: true,
+    },
   });
   return {
     count: agg._count._all,
@@ -67,5 +76,8 @@ export async function getPerformanceSummary(): Promise<PerformanceSummary> {
     orderCount: agg._sum.orderCount ?? 0,
     gmv: agg._sum.gmv ?? 0,
     commission: agg._sum.commission ?? 0,
+    avgCompletionRate: agg._avg.completionRate ?? null,
+    avgThreeSecRate: agg._avg.threeSecRate ?? null,
+    avgWatchSec: agg._avg.avgWatchSec ?? null,
   };
 }

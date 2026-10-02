@@ -9,11 +9,12 @@ import { useToast } from "@/components/Toast";
 import { Button, Card, Input, Select } from "@/components/ui";
 import Reveal from "@/components/Reveal";
 import Spotlight from "@/components/Spotlight";
+import { PLATFORM_LABEL, TRACKS, evaluateProduct } from "@/lib/selectionUtils";
 
 interface Product {
   id: number; name: string; category?: string | null; price?: number | null;
   commissionRate?: number | null; dailySales?: number | null; status: string;
-  trend: string; source: string;
+  trend: string; source: string; track?: string | null; platform?: string | null;
   _count?: { scriptIdeas: number; assets: number };
 }
 
@@ -23,6 +24,7 @@ export default function ProductsPage() {
   const toast = useToast();
   const [products, setProducts] = useState<Product[]>(EMPTY);
   const [status, setStatus] = useState("ALL");
+  const [track, setTrack] = useState("ALL");
   const [keywordInput, setKeywordInput] = useState("");
   const [keyword, setKeyword] = useState("");
   const [sort, setSort] = useState("updatedAt");
@@ -43,6 +45,7 @@ export default function ProductsPage() {
     try {
       const q = new URLSearchParams();
       if (status !== "ALL") q.set("status", status);
+      if (track !== "ALL") q.set("track", track);
       if (keyword) q.set("keyword", keyword);
       q.set("sort", sort);
       q.set("order", order);
@@ -54,7 +57,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [status, keyword, sort, order]);
+  }, [status, track, keyword, sort, order]);
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
@@ -142,6 +145,10 @@ export default function ProductsPage() {
           <option value="SELECTED">已选</option>
           <option value="DROPPED">放弃</option>
         </Select>
+        <Select value={track} onChange={(e) => setTrack(e.target.value)}>
+          <option value="ALL">全部赛道</option>
+          {TRACKS.map((t) => <option key={t} value={t}>{t}</option>)}
+        </Select>
         <Input
           placeholder="搜索名称"
           value={keywordInput}
@@ -175,7 +182,9 @@ export default function ProductsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {products.map((p, i) => (
+          {products.map((p, i) => {
+            const score = evaluateProduct({ price: p.price, commissionRate: p.commissionRate, dailySales: p.dailySales, trend: p.trend as "UP" | "STEADY" | "DOWN" });
+            return (
             <Reveal key={p.id} delay={Math.min(i % 6, 5) * 60}>
               <Spotlight className="h-full">
                 <Card hover className={`h-full p-4 ${selected.has(p.id) ? "border-accent/50 shadow-accent" : ""}`}>
@@ -190,6 +199,13 @@ export default function ProductsPage() {
                       <Link href={`/products/${p.id}`} className="text-[15px] font-medium text-fg transition-colors duration-150 hover:text-accent">{p.name}</Link>
                     </label>
                     <StatusBadge status={p.status} />
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-fg-2">
+                    <span className={`rounded-md px-1.5 py-0.5 font-medium ${score.grade === "A" ? "bg-success/15 text-success" : score.grade === "B" ? "bg-accent/15 text-accent" : "bg-white/5"}`}>
+                      选品 {score.grade}·{score.score}
+                    </span>
+                    {p.track && <span className="rounded-md bg-white/5 px-1.5 py-0.5">{p.track}</span>}
+                    {p.platform && <span className="rounded-md bg-white/5 px-1.5 py-0.5">{PLATFORM_LABEL[p.platform as keyof typeof PLATFORM_LABEL] ?? p.platform}</span>}
                   </div>
                   <div className="tnum mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-fg-2">
                     <div>类目 {p.category ?? "-"}</div>
@@ -209,7 +225,8 @@ export default function ProductsPage() {
                 </Card>
               </Spotlight>
             </Reveal>
-          ))}
+            );
+          })}
           {products.length === 0 && (
             <EmptyState
               title="暂无商品"

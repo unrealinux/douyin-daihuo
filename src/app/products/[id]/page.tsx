@@ -8,11 +8,12 @@ import { useToast } from "@/components/Toast";
 import { Button, Card, Input, Label, Select } from "@/components/ui";
 import Reveal from "@/components/Reveal";
 import Spotlight from "@/components/Spotlight";
+import { PLATFORM_LABEL, TRACKS, evaluateProduct } from "@/lib/selectionUtils";
 
 interface Product {
   id: number; name: string; url?: string | null; category?: string | null;
   price?: number | null; commissionRate?: number | null; dailySales?: number | null;
-  status: string; trend: string; note?: string | null;
+  status: string; trend: string; note?: string | null; track?: string | null; platform?: string | null;
   scriptIdeas: { id: number; title?: string | null; status: string; createdAt: string }[];
 }
 
@@ -38,6 +39,7 @@ export default function ProductDetailPage() {
           name: data.name, url: data.url ?? "", category: data.category ?? "",
           price: data.price ?? "", commissionRate: data.commissionRate ?? "",
           dailySales: data.dailySales ?? "", status: data.status, trend: data.trend, note: data.note ?? "",
+          track: data.track ?? "", platform: data.platform ?? "",
         });
       });
   }, [id]);
@@ -47,6 +49,12 @@ export default function ProductDetailPage() {
   if (!p || !form) return <p className="text-white/40">商品不存在或已被删除</p>;
 
   const set = (k: string, v: string) => setForm({ ...form, [k]: v });
+
+  const score = evaluateProduct({
+    price: form.price !== "" ? Number(form.price) : undefined,
+    commissionRate: form.commissionRate !== "" ? Number(form.commissionRate) : undefined,
+    dailySales: form.dailySales !== "" ? Number(form.dailySales) : undefined,
+  });
 
   const save = async () => {
     setSaving(true);
@@ -59,6 +67,7 @@ export default function ProductDetailPage() {
         commissionRate: form.commissionRate ? Number(form.commissionRate) : null,
         dailySales: form.dailySales ? Number(form.dailySales) : null,
         status: form.status, trend: form.trend, note: form.note || undefined,
+        track: form.track || null, platform: (form.platform || null) as never,
       }),
     });
     if (res.ok) {
@@ -68,6 +77,7 @@ export default function ProductDetailPage() {
         name: updated.name, url: updated.url ?? "", category: updated.category ?? "",
         price: updated.price ?? "", commissionRate: updated.commissionRate ?? "",
         dailySales: updated.dailySales ?? "", status: updated.status, trend: updated.trend, note: updated.note ?? "",
+        track: updated.track ?? "", platform: updated.platform ?? "",
       });
       toast("已保存", "success");
     } else {
@@ -94,6 +104,22 @@ export default function ProductDetailPage() {
             <div><Label>商品名称</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
         <div><Label>链接</Label><Input value={form.url} onChange={(e) => set("url", e.target.value)} /></div>
         <div><Label>类目</Label><Input value={form.category} onChange={(e) => set("category", e.target.value)} /></div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <Label>赛道</Label>
+            <Select value={form.track} onChange={(e) => set("track", e.target.value)}>
+              <option value="">未指定</option>
+              {TRACKS.map((t) => <option key={t} value={t}>{t}</option>)}
+            </Select>
+          </div>
+          <div>
+            <Label>目标平台</Label>
+            <Select value={form.platform} onChange={(e) => set("platform", e.target.value)}>
+              <option value="">未指定</option>
+              {Object.entries(PLATFORM_LABEL).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+            </Select>
+          </div>
+        </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div><Label>价格</Label><Input type="number" value={form.price} onChange={(e) => set("price", e.target.value)} /></div>
           <div><Label>佣金率 %</Label><Input type="number" value={form.commissionRate} onChange={(e) => set("commissionRate", e.target.value)} /></div>
@@ -119,6 +145,17 @@ export default function ProductDetailPage() {
           </div>
         </div>
         <div><Label>备注</Label><Input value={form.note} onChange={(e) => set("note", e.target.value)} /></div>
+        <div className="rounded-lg border border-line/60 bg-white/5 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-fg-2">选品评分（SOP 四大标准）</span>
+            <span className={`tnum text-lg font-semibold ${score.grade === "A" ? "text-success" : score.grade === "B" ? "text-accent" : "text-fg-2"}`}>
+              {score.grade} · {score.score}
+            </span>
+          </div>
+          {score.unitCommission != null && <p className="mt-1 text-xs text-fg-2">单笔预估佣金 ¥{score.unitCommission}</p>}
+          {score.highlights.map((h) => <p key={h} className="mt-1 text-xs text-success">✓ {h}</p>)}
+          {score.warnings.map((w) => <p key={w} className="mt-1 text-xs text-warning">! {w}</p>)}
+        </div>
         <div className="flex gap-2">
           <Button onClick={save} disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
           <Link href={`/scripts/generate?productId=${p.id}`}><Button variant="secondary">生成文案</Button></Link>

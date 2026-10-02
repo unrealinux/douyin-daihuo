@@ -13,6 +13,14 @@ enum ProductSource {
   CRAWLER
 }
 
+enum Platform {
+  VIDEO_ACCOUNT
+  DOUYIN
+  XIAOHONGSHU
+  KUAISHOU
+  OTHER
+}
+
 enum ProductStatus {
   CANDIDATE
   FOLLOWING
@@ -80,15 +88,19 @@ model Product {
   trend          Trend     @default(STEADY)
   source         ProductSource @default(MANUAL)
   status         ProductStatus @default(CANDIDATE)
+  platform       Platform?
+  track          String?
   note           String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   scrapeTasks    ScrapeTask[]
   scriptIdeas    ScriptIdea[]
   assets         Asset[]
+  benchmarks     Benchmark[]
 
   @@index([status])
   @@index([category])
+  @@index([track])
 }
 
 model ScrapeTask {
@@ -110,6 +122,8 @@ model ScriptIdea {
   id          Int          @id @default(autoincrement())
   productId   Int?
   product     Product?     @relation(fields: [productId], references: [id])
+  benchmarkId Int?
+  benchmark   Benchmark?   @relation(fields: [benchmarkId], references: [id])
   title       String?
   hook        String?
   body        String
@@ -118,6 +132,7 @@ model ScriptIdea {
   style       ScriptStyle  @default(SPOKEN)
   durationSec Int          @default(30)
   llmModel    String?
+  similarity  Float?
   status      ScriptStatus @default(DRAFT)
   createdAt   DateTime     @default(now())
   assets      Asset[]
@@ -156,19 +171,52 @@ model Schedule {
 }
 
 model Performance {
-  id          Int      @id @default(autoincrement())
-  scheduleId  Int      @unique
-  schedule    Schedule @relation(fields: [scheduleId], references: [id])
-  views       Int      @default(0)
-  likes       Int      @default(0)
-  comments    Int      @default(0)
-  shares      Int      @default(0)
-  favorites   Int      @default(0)
-  orderCount  Int      @default(0)
-  gmv         Float    @default(0)
-  commission  Float    @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  scheduleId     Int      @unique
+  schedule       Schedule @relation(fields: [scheduleId], references: [id])
+  views          Int      @default(0)
+  likes          Int      @default(0)
+  comments       Int      @default(0)
+  shares         Int      @default(0)
+  favorites      Int      @default(0)
+  orderCount     Int      @default(0)
+  gmv            Float    @default(0)
+  commission     Float    @default(0)
+  completionRate Float?
+  threeSecRate   Float?
+  avgWatchSec    Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+/// 爆款选题资产库：对标视频的口播稿、数据与结构拆解，供二创引用。
+model Benchmark {
+  id          Int       @id @default(autoincrement())
+  platform    Platform?
+  track       String?
+  title       String
+  author      String?
+  url         String?
+  coverPath   String?
+  transcript  String?
+  durationSec Int?
+  views       Int?
+  likes       Int?
+  favorites   Int?
+  shares      Int?
+  comments    Int?
+  publishedAt DateTime?
+  hookType    String?
+  breakdown   String?
+  productId   Int?
+  product     Product?  @relation(fields: [productId], references: [id])
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  scriptIdeas ScriptIdea[]
+
+  @@index([track])
+  @@index([platform])
 }
 
 model Setting {
