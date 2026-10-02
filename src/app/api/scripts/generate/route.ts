@@ -3,6 +3,7 @@ import { generateScript, GenerateInput } from "@/services/scriptService";
 import { LlmNotConfiguredError } from "@/lib/llm";
 import { getProduct } from "@/services/productService";
 import { getBenchmark } from "@/services/benchmarkService";
+import { checkScriptCompliance } from "@/lib/complianceCheck";
 
 export async function POST(req: Request) {
   try {
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
       };
     }
     const script = await generateScript(input);
-    return NextResponse.json(script, { status: 201 });
+    return NextResponse.json({ ...script, compliance: checkScriptCompliance(script) }, { status: 201 });
   } catch (e) {
     if (e instanceof SyntaxError) {
       return NextResponse.json({ error: "请求体不是有效 JSON" }, { status: 400 });

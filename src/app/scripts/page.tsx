@@ -11,6 +11,7 @@ import Modal from "@/components/Modal";
 import { Button, Card } from "@/components/ui";
 import { formatScriptPlaintext, parseHashtagsJson } from "@/services/scriptParser";
 import { parseShotsJson } from "@/lib/shotUtils";
+import { checkScriptCompliance } from "@/lib/complianceCheck";
 import { findPolyphones, suggestBreathMarks, toTtsText } from "@/lib/voiceUtils";
 import { similarityLevel, similarityPercent } from "@/lib/similarity";
 import Reveal from "@/components/Reveal";
@@ -115,7 +116,9 @@ function ScriptsList() {
       {err && <ErrorBanner message={err} onRetry={load} />}
 
       <div className="space-y-3">
-        {scripts.map((s, i) => (
+        {scripts.map((s, i) => {
+          const compliance = checkScriptCompliance(s);
+          return (
           <Reveal key={s.id} delay={Math.min(i % 6, 5) * 60}>
             <Spotlight>
               <Card hover className={`p-4 ${deepId === String(s.id) ? "border-accent/40" : ""}`}>
@@ -127,6 +130,20 @@ function ScriptsList() {
                     {s.product && <div className="mt-0.5 truncate text-xs text-fg-2">{s.product.name}</div>}
                   </div>
                   <StatusBadge status={s.status} />
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                  {compliance.redlineCount > 0 ? (
+                    <span className="rounded-md bg-danger/15 px-1.5 py-0.5 font-medium text-danger">违规 {compliance.redlineCount}</span>
+                  ) : compliance.warnCount > 0 ? (
+                    <span className="rounded-md bg-warning/15 px-1.5 py-0.5 font-medium text-warning">提醒 {compliance.warnCount}</span>
+                  ) : (
+                    <span className="rounded-md bg-success/15 px-1.5 py-0.5 font-medium text-success">合规</span>
+                  )}
+                  {s.similarity != null && (
+                    <span className={similarityLevel(s.similarity) === "safe" ? "rounded-md bg-success/15 px-1.5 py-0.5 text-success" : similarityLevel(s.similarity) === "caution" ? "rounded-md bg-warning/15 px-1.5 py-0.5 text-warning" : "rounded-md bg-danger/15 px-1.5 py-0.5 text-danger"}>
+                      相似度 {similarityPercent(s.similarity)}%
+                    </span>
+                  )}
                 </div>
                 <div className="tnum mt-1 text-xs text-fg-2">
                   {s.style} · {s.durationSec}s · {s.llmModel ?? ""} · {new Date(s.createdAt).toLocaleString()}
@@ -142,7 +159,8 @@ function ScriptsList() {
               </Card>
             </Spotlight>
           </Reveal>
-        ))}
+          );
+        })}
         {scripts.length === 0 && !err && (
           <EmptyState title="暂无脚本" description="从商品库选品或手动输入后生成" actionHref="/scripts/generate" actionLabel="去生成" />
         )}
@@ -166,6 +184,23 @@ function ScriptsList() {
       >
         {open && (
           <div className="space-y-4 text-sm text-white/80">
+            {(() => {
+              const c = checkScriptCompliance(open);
+              if (c.issues.length === 0) return null;
+              return (
+                <div className={`rounded-lg border p-3 text-xs ${c.redlineCount > 0 ? "border-danger/30 bg-danger/10" : "border-warning/30 bg-warning/10"}`}>
+                  <p className={`font-medium ${c.redlineCount > 0 ? "text-danger" : "text-warning"}`}>
+                    合规校验：{c.redlineCount > 0 ? `${c.redlineCount} 项红线违规` : `${c.warnCount} 项提醒`}
+                  </p>
+                  {c.issues.map((it) => (
+                    <p key={it.rule + it.field} className="mt-1 text-fg-2">
+                      <span className={it.level === "redline" ? "text-danger" : "text-warning"}>[{it.level === "redline" ? "红线" : "提醒"}]</span>{" "}
+                      {it.rule}（{it.field}）：{it.message} — <span className="text-white/60">{it.evidence}</span>
+                    </p>
+                  ))}
+                </div>
+              );
+            })()}
             <div>
               <div className="text-xs text-fg-2">黄金3秒钩子</div>
               <p className="mt-1 text-fg">{open.hook ?? "-"}</p>

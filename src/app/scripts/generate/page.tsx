@@ -13,6 +13,10 @@ interface Product {
   id: number; name: string; note?: string | null; category?: string | null;
 }
 
+interface ComplianceIssue {
+  rule: string; level: "redline" | "warn"; field: string; message: string; evidence: string;
+}
+
 interface BenchmarkOption {
   id: number; title: string; track?: string | null; platform?: string | null;
 }
@@ -38,7 +42,7 @@ function GenerateForm() {
   const [sellingPoints, setSellingPoints] = useState("");
   const [style, setStyle] = useState("SPOKEN");
   const [duration, setDuration] = useState("30");
-  const [result, setResult] = useState<{ id: number; similarity?: number | null } | null>(null);
+  const [result, setResult] = useState<{ id: number; similarity?: number | null; compliance?: { redlineCount: number; warnCount: number; issues: ComplianceIssue[] } } | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -76,7 +80,7 @@ function GenerateForm() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (res.ok) setResult({ id: data.id, similarity: data.similarity });
+      if (res.ok) setResult({ id: data.id, similarity: data.similarity, compliance: data.compliance });
       else setErr(data.error ?? "生成失败");
     } catch (e) {
       setErr(String(e));
@@ -186,6 +190,19 @@ function GenerateForm() {
                     与对标相似度 {similarityPercent(result.similarity)}% ·{" "}
                     {similarityLevel(result.similarity) === "safe" ? "安全（<10%）" : similarityLevel(result.similarity) === "caution" ? "需谨慎，建议再改写（目标 <10%）" : "高风险，务必重写中段"}
                   </p>
+                )}
+                {result.compliance && result.compliance.issues.length > 0 && (
+                  <div className={`mt-2 rounded-lg border p-3 text-xs ${result.compliance.redlineCount > 0 ? "border-danger/30 bg-danger/10" : "border-warning/30 bg-warning/10"}`}>
+                    <p className={`font-medium ${result.compliance.redlineCount > 0 ? "text-danger" : "text-warning"}`}>
+                      合规校验：{result.compliance.redlineCount > 0 ? `${result.compliance.redlineCount} 项红线违规，建议重新生成` : `${result.compliance.warnCount} 项提醒`}
+                    </p>
+                    {result.compliance.issues.map((it) => (
+                      <p key={it.rule + it.field} className="mt-1 text-fg-2">
+                        <span className={it.level === "redline" ? "text-danger" : "text-warning"}>[{it.level === "redline" ? "红线" : "提醒"}]</span>{" "}
+                        {it.rule}（{it.field}）：{it.message} — <span className="text-white/60">{it.evidence}</span>
+                      </p>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
