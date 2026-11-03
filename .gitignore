@@ -1,0 +1,8 @@
+# 付费社区内容，仅本地参考，勿提交
+生财资料/
+
+# 对标逐字稿与素材
+conspects/*
+!conspects/.gitkeep
+
+.DS_Store
