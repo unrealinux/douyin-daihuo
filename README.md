@@ -25,15 +25,17 @@ conspects/       对标逐字稿存档
 对标逐字稿 → A/B 两版文案 + 自动检测。**不需要装依赖**，Python 3.10+ 即可。
 
 ```bash
-# 生成：需要 LLM key（DeepSeek / OpenAI / 任何 OpenAI 兼容网关）
-export LLM_API_KEY=sk-xxx
-export LLM_BASE_URL=https://api.deepseek.com/v1   # 可选
-export LLM_MODEL=deepseek-chat                    # 可选
+# 1. 填 key：把 .env.example 复制成 .env，改成自己的 key（.env 已 gitignore）
+cp .env.example .env && open -e .env
+
+# 2. 生成
 python3 -m daihuo gen --book 抗炎食物 --draft conspects/对标01.md
 
-# 离线检测：手写的文案也能查，不花钱
+# 3. 离线检测：手写的文案也能查，不花钱
 python3 -m daihuo check --file out/B-转化版.md --draft conspects/对标01.md
 ```
+
+默认就是 DeepSeek（`deepseek-chat`）。用别的网关时 export `LLM_BASE_URL` / `LLM_MODEL` / `LLM_API_KEY` 覆盖即可。
 
 产出在 `out/`：`A-情感版.md`（起号期，不带货）、`B-转化版.md`（权重起来后，四段结构 + 转化）。
 

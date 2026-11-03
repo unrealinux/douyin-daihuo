@@ -2,7 +2,7 @@
 
 支持 DeepSeek / 通义 / OpenAI / 任何 OpenAI 兼容网关。
 配置走环境变量：
-  LLM_API_KEY    必填
+  LLM_API_KEY 或 DEEPSEEK_API_KEY   必填
   LLM_BASE_URL   默认 https://api.deepseek.com/v1
   LLM_MODEL      默认 deepseek-chat
 """
@@ -26,14 +26,34 @@ class LLMError(RuntimeError):
 
 
 def config() -> dict:
-    key = os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    values = {**_dotenv(), **os.environ}
+    key = values.get("LLM_API_KEY") or values.get("DEEPSEEK_API_KEY") or values.get("OPENAI_API_KEY")
     if not key:
-        raise LLMError("缺少 LLM_API_KEY。请先 export LLM_API_KEY=sk-xxx（可选 LLM_BASE_URL / LLM_MODEL）")
+        raise LLMError(
+            "缺少 API key。export DEEPSEEK_API_KEY=sk-xxx（DeepSeek）或 LLM_API_KEY=sk-xxx（其他网关），"
+            "也可以直接写进仓库根目录的 .env"
+        )
     return {
         "api_key": key,
-        "base_url": os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL).rstrip("/"),
-        "model": os.environ.get("LLM_MODEL", DEFAULT_MODEL),
+        "base_url": values.get("LLM_BASE_URL", DEFAULT_BASE_URL).rstrip("/"),
+        "model": values.get("LLM_MODEL", DEFAULT_MODEL),
     }
+
+
+def _dotenv() -> dict:
+    """读仓库根目录的 .env（如果存在），省得每次开 shell 都 export。"""
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if not os.path.exists(path):
+        return {}
+    values = {}
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            name, _, value = line.partition("=")
+            values[name.strip()] = value.strip().strip("\"'")
+    return values
 
 
 def chat(system: str, user: str, temperature: float = 0.8) -> str:

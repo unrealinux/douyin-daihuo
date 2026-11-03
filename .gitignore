@@ -11,3 +11,6 @@ out/
 .DS_Store
 __pycache__/
 *.pyc
+
+# 本地密钥
+.env
