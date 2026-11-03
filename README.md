@@ -25,16 +25,20 @@ conspects/       对标逐字稿存档
 对标逐字稿 → A/B 两版文案 + 自动检测。**不需要装依赖**，Python 3.10+ 即可。
 
 ```bash
-# 1. 填 key：把 .env.example 复制成 .env，改成自己的 key（.env 已 gitignore）
-cp .env.example .env && open -e .env
+# 1. 装成全局命令（一次就好，之后在任意目录都能跑）
+uv tool install --editable ~/Documents/douyin-daihuo
 
-# 2. 生成
-python3 -m daihuo gen --book 抗炎食物 --draft conspects/对标01.md
+# 2. 填 key：把 .env.example 复制成 .env，换成自己的 key（.env 已 gitignore）
+cd ~/Documents/douyin-daihuo && cp .env.example .env && open -e .env
 
-# 3. 离线检测：手写的文案也能查，不花钱
-python3 -m daihuo check --file out/B-转化版.md --draft conspects/对标01.md
+# 3. 生成（任意目录都行，draft 路径改成你自己的）
+daihuo gen --book 抗炎食物 --draft ~/Documents/douyin-daihuo/conspects/对标01.md
+
+# 4. 离线检测：手写的文案也能查，不花钱
+daihuo check --file out/B-转化版.md
 ```
 
+没装全局命令时，在仓库根目录用 `python3 -m daihuo ...` 效果一样。
 默认就是 DeepSeek（`deepseek-chat`）。用别的网关时 export `LLM_BASE_URL` / `LLM_MODEL` / `LLM_API_KEY` 覆盖即可。
 
 产出在 `out/`：`A-情感版.md`（起号期，不带货）、`B-转化版.md`（权重起来后，四段结构 + 转化）。

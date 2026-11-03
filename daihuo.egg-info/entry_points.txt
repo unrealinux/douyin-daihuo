@@ -1,0 +1,2 @@
+[console_scripts]
+daihuo = daihuo.cli:main
