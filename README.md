@@ -68,7 +68,7 @@ docs/                  SOP、路线图、历史设计文档
 
 ## 已知限制
 
-- **爬虫需要额外装浏览器**：`npx playwright install chromium`。不装的话 `/products/tasks` 里提交的抓取任务会一直失败。
+- **爬虫是占位实现，且需要额外装浏览器**：`KEYWORD` 模式实际是抓百度搜索结果标题，`LINK` 模式只取页面 title，都不是真正的精选联盟采集。要用得先 `npx playwright install chromium`（约 150MB），否则 `/products/tasks` 提交的任务会一直失败。建议直接走 CSV 导入或手动录入。
 - **schema 变更无迁移文件**：只有 `prisma/schema.prisma`，靠 `db:push` 推进。改字段前先备份 `data/douyin.db`。
 - **对标数据手动录入**：平台自动化采集未实现（风控与维护成本高），当前在对标库手动填。
 - **剪映草稿不自动生成**：素材包导出 zip 里是分镜 / 口播 / 封面提示词等文本，剪映里的装配仍人工。
