@@ -5,4 +5,9 @@
 conspects/*
 !conspects/.gitkeep
 
+# 流水线产物
+out/
+
 .DS_Store
+__pycache__/
+*.pyc

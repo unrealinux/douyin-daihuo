@@ -13,10 +13,45 @@
 
 ```
 docs/            选品 → 对标 → 文案 → 制作 → 复盘 → 投流 → 自动化的完整 SOP
+daihuo/          文案流水线（纯标准库，零依赖）
+tests/           检测逻辑的回归测试
 data/内容台账.csv  每条视频一行，18 个字段，Excel/Numbers 直接开
 conspects/       对标逐字稿存档
 生财资料/         原始资料（付费社区内容，仅本地参考，已 gitignore）
 ```
+
+## 流水线（已可运行）
+
+对标逐字稿 → A/B 两版文案 + 自动检测。**不需要装依赖**，Python 3.10+ 即可。
+
+```bash
+# 生成：需要 LLM key（DeepSeek / OpenAI / 任何 OpenAI 兼容网关）
+export LLM_API_KEY=sk-xxx
+export LLM_BASE_URL=https://api.deepseek.com/v1   # 可选
+export LLM_MODEL=deepseek-chat                    # 可选
+python3 -m daihuo gen --book 抗炎食物 --draft conspects/对标01.md
+
+# 离线检测：手写的文案也能查，不花钱
+python3 -m daihuo check --file out/B-转化版.md --draft conspects/对标01.md
+```
+
+产出在 `out/`：`A-情感版.md`（起号期，不带货）、`B-转化版.md`（权重起来后，四段结构 + 转化）。
+
+自动检测四项（规则来自 `docs/02`、`docs/03`）：
+
+| 检查 | 阈值 | 不通过怎么办 |
+|---|---|---|
+| 前 3 秒字数 | ≤16 字 | 砍开头，第一句就出钩子 |
+| 前 5 秒字数 | ≤26 字 | 同上 |
+| 与对标相似度 | <10%（连续 8 字） | 中段重写，锁两头破中间 |
+| 硬禁词 | 0 处 | 改成书中观点/生活思路 |
+
+软禁词（`最` `第一` `保证` 等）只报警告，因为中文里大量正常用法，需人工确认。
+**疾病名、疗效暗示这类语义违规检测不了**，仍要靠人过一遍 `docs/03` 的红线表。
+
+改文案质量先改 `daihuo/prompts.py`，不要改代码。
+
+跑测试：`python3 -m unittest discover -s tests`
 
 ## SOP 索引
 
