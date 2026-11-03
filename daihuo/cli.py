@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import re
 import sys
 
 from . import check, llm, prompts
@@ -35,7 +36,14 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _gen(args) -> int:
-    source = _read(args.draft)
+    source = _transcript(_read(args.draft))
+    if len(source) < 50:
+        print(
+            f"✗ 对标正文只有 {len(source)} 字，没内容可生成。\n"
+            f"  打开 {args.draft}，把元宝提取的逐字稿整段粘到「## 逐字稿」下面。",
+            file=sys.stderr,
+        )
+        return 1
     try:
         llm.config()
     except llm.LLMError as error:
@@ -104,6 +112,20 @@ def _read(path: pathlib.Path) -> str:
     if not path.exists():
         raise SystemExit(f"文件不存在：{path}")
     return path.read_text(encoding="utf-8")
+
+
+def _transcript(text: str) -> str:
+    """从对标文件里只取正文：去掉元信息、拆解段和注释，避免污染提示词。
+
+    有 `## 逐字稿` 就拿它到 `## 拆解` 之间；没有就当全文都是正文。
+    """
+    if "## 逐字稿" in text:
+        text = text.split("## 逐字稿", 1)[1]
+    if "## 拆解" in text:
+        text = text.split("## 拆解", 1)[0]
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+    lines = [line for line in text.splitlines() if line.strip() and not line.startswith(("#", "- "))]
+    return "\n".join(lines).strip()
 
 
 if __name__ == "__main__":
