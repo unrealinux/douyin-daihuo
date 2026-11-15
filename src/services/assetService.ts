@@ -87,8 +87,12 @@ export function resolveSafeUploadPath(relPath: string): string | null {
 
 export async function deleteAsset(id: number) {
   const asset = await prisma.asset.findUnique({ where: { id } });
+  const schedules = await prisma.schedule.findMany({ where: { assetId: id }, select: { id: true } });
+  const scheduleIds = schedules.map((s) => s.id);
 
+  // 先删它们的复盘，否则 Schedule→Performance 的 Restrict 会拦住整个删除
   await prisma.$transaction([
+    prisma.performance.deleteMany({ where: { scheduleId: { in: scheduleIds } } }),
     prisma.schedule.deleteMany({ where: { assetId: id } }),
     prisma.asset.delete({ where: { id } }),
   ]);

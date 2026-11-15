@@ -36,7 +36,12 @@ export async function updateSchedule(id: number, input: Partial<{
 }
 
 export async function deleteSchedule(id: number) {
-  return prisma.schedule.delete({ where: { id } });
+  // Performance 是 required 关系且默认 Restrict，不先删会抛 P2003
+  const [, schedule] = await prisma.$transaction([
+    prisma.performance.deleteMany({ where: { scheduleId: id } }),
+    prisma.schedule.delete({ where: { id } }),
+  ]);
+  return schedule;
 }
 
 export function sortSchedules<T extends { scheduledAt: Date }>(items: T[], order: "asc" | "desc" = "asc"): T[] {
