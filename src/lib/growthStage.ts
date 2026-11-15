@@ -8,10 +8,23 @@ export interface GrowthInput {
   publishedCount: number;
   /** 从首次发布至今的月数（可为小数） */
   monthsActive: number;
-  /** 已产生内容的赛道/品类数量 */
-  categoryCount: number;
   /** 是否存在单品累计出单 ≥50 的爆品 */
   hasWinningProduct?: boolean;
+}
+
+/** 单款商品累计出单达到此值即视为爆品。 */
+export const WINNING_PRODUCT_ORDERS = 50;
+
+/** 按商品汇总出单，看是否存在单品累计出单达标的爆品。 */
+export function detectWinningProduct(
+  samples: Array<{ productId: number | null; orderCount: number }>
+): boolean {
+  const totals = new Map<number, number>();
+  for (const s of samples) {
+    if (s.productId == null) continue;
+    totals.set(s.productId, (totals.get(s.productId) ?? 0) + s.orderCount);
+  }
+  return [...totals.values()].some((n) => n >= WINNING_PRODUCT_ORDERS);
 }
 
 export interface GrowthStageInfo {
@@ -103,7 +116,7 @@ export function evaluateGrowthStage(input: GrowthInput): GrowthStageInfo {
       "发布后按完播率 / 3 秒播放率 / 评论数据迭代",
     ],
     next: "累计 50 单后进入「深耕单品」阶段",
-    progress: clamp((totalOrders / 50) * 100),
+    progress: clamp((totalOrders / WINNING_PRODUCT_ORDERS) * 100),
   };
 }
 
