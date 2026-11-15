@@ -8,9 +8,16 @@ export interface GrowthInput {
   publishedCount: number;
   /** 从首次发布至今的月数（可为小数） */
   monthsActive: number;
+  /** 已产生内容的赛道数（product.track 去重后计数） */
+  trackCount: number;
+  /** 账号数，用于判断是否已在做矩阵 */
+  accountCount: number;
   /** 是否存在单品累计出单 ≥50 的爆品 */
   hasWinningProduct?: boolean;
 }
+
+/** 阶段 4 要求的最低月数。 */
+export const STAGE4_MIN_MONTHS = 6;
 
 /** 单款商品累计出单达到此值即视为爆品。 */
 export const WINNING_PRODUCT_ORDERS = 50;
@@ -48,7 +55,9 @@ const STAGES = {
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
 export function evaluateGrowthStage(input: GrowthInput): GrowthStageInfo {
-  const { totalOrders, publishedCount, monthsActive, hasWinningProduct } = input;
+  const { totalOrders, publishedCount, monthsActive, trackCount, accountCount, hasWinningProduct } = input;
+  // 阶段 4 是「深耕品类 + 矩阵放大」：光耗时间不够，得真的多品类或多账号
+  const diversified = trackCount >= 2 || accountCount >= 2;
 
   if (publishedCount <= 0) {
     return {
@@ -64,7 +73,7 @@ export function evaluateGrowthStage(input: GrowthInput): GrowthStageInfo {
     };
   }
 
-  if (monthsActive >= 6) {
+  if (monthsActive >= STAGE4_MIN_MONTHS && diversified) {
     return {
       ...STAGES[4],
       stage: 4,
@@ -88,8 +97,11 @@ export function evaluateGrowthStage(input: GrowthInput): GrowthStageInfo {
         "同一周期批量测试多款商品 × 多套素材 × 多种文案风格",
         "数据好的加素材，数据差的及时止损",
       ],
-      next: "沉淀出 3–5 个稳定出单品，进入深耕品类阶段",
-      progress: clamp((monthsActive / 6) * 100),
+      next:
+        monthsActive >= STAGE4_MIN_MONTHS
+          ? "已跑满 6 个月：再开第 2 个赛道或第 2 个账号即可进入阶段 4"
+          : "沉淀出 3–5 个稳定出单品，进入深耕品类阶段",
+      progress: clamp((monthsActive / STAGE4_MIN_MONTHS) * 100),
     };
   }
 
