@@ -24,9 +24,9 @@
 
 3. 建库
    ```bash
-   npm run db:push
+   npm run db:migrate
    ```
-   会创建 `data/douyin.db`。`data/` 已被 gitignore，库里是你的真实数据，不会被提交。
+   会按 `prisma/migrations/` 里的迁移创建 `data/douyin.db`。`data/` 已被 gitignore，库里是你的真实数据，不会被提交。
 
 4. 启动
    ```bash
@@ -46,7 +46,7 @@
 | `npm run build` | 生产构建 |
 | `npm run start` | 跑生产构建，只绑 `127.0.0.1` |
 | `npm test` | Vitest 单测（19 个文件 / 123 例） |
-| `npm run db:push` | 同步 Prisma schema 到 SQLite |
+| `npm run db:migrate` | 应用/新建迁移，同步 schema 到 SQLite |
 | `npm run db:studio` | 打开 Prisma Studio 看数据 |
 | `npx tsc --noEmit` | 类型检查（无 npm script，直接调） |
 
@@ -54,6 +54,7 @@
 
 ```
 prisma/schema.prisma   数据模型（商品/对标/脚本/素材/排期/账号/复盘/设置）
+prisma/migrations/     迁移历史，不要手改
 src/lib/               纯函数业务逻辑，全部有单测
 src/services/          数据访问与流程编排
 src/app/api/           REST 路由，只做参数解析和响应
@@ -69,7 +70,7 @@ docs/                  SOP、路线图、历史设计文档
 ## 已知限制
 
 - **链接解析只读页面自带元数据**：`/products/tasks` 打开你粘贴的商品链接，读 og:title / og:image / JSON-LD 价格，能拿到标题、价格、封面。佣金率与日销页面本来就不公开，仍需在精选联盟后台填。首次使用需 `npx playwright install chromium`（约 150MB），否则任务会失败。
-- **schema 变更无迁移文件**：只有 `prisma/schema.prisma`，靠 `db:push` 推进。改字段前先备份 `data/douyin.db`。
+- **改 schema 走迁移**：改 `schema.prisma` 后用 `npm run db:migrate`，它会生成一个新的 `prisma/migrations/*` 并应用。库里是真实数据，改之前先备份 `data/douyin.db`。
 - **对标数据手动录入**：平台自动化采集未实现（风控与维护成本高），当前在对标库手动填。
 - **剪映草稿不自动生成**：素材包导出 zip 里是分镜 / 口播 / 封面提示词等文本，剪映里的装配仍人工。
 - **无登录鉴权**：靠绑定回环地址保护。用 `node .next/standalone/server.js` 部署时它读 `HOSTNAME` 环境变量，默认 `0.0.0.0`，会绕开这个保护，需要自己设 `HOSTNAME=127.0.0.1`。

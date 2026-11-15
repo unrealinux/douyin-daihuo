@@ -8,7 +8,7 @@
     "start": "next start -H 127.0.0.1",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
   },
   "dependencies": {
