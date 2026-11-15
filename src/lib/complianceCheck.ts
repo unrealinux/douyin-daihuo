@@ -127,3 +127,19 @@ export function checkScriptCompliance(input: ComplianceInput): ComplianceReport 
   const warnCount = issues.filter((i) => i.level === "warn").length;
   return { ok: redlineCount === 0, issues, redlineCount, warnCount };
 }
+
+/** 红线未过时抛出，由 API 层转成 400。 */
+export class ComplianceBlockedError extends Error {
+  constructor(readonly redlineIssues: ComplianceIssue[]) {
+    super(`脚本未通过合规红线：${redlineIssues.map((i) => i.rule).join("、")}`);
+    this.name = "ComplianceBlockedError";
+  }
+}
+
+/** 服务端采绖门禁：命中任一条红线即抛错，warn 不拦截。 */
+export function assertScriptCompliant(input: ComplianceInput): void {
+  const report = checkScriptCompliance(input);
+  if (!report.ok) {
+    throw new ComplianceBlockedError(report.issues.filter((i) => i.level === "redline"));
+  }
+}

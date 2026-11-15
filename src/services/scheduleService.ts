@@ -1,5 +1,6 @@
 import { PublishStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { assertPublishable } from "@/lib/publishChecklist";
 
 export async function listSchedules() {
   return prisma.schedule.findMany({
@@ -26,6 +27,11 @@ export async function updateSchedule(id: number, input: Partial<{
   publishHashtags?: string;
   commentScript?: string;
 }>) {
+  if (input.publishStatus === PublishStatus.PUBLISHED) {
+    const current = await prisma.schedule.findUnique({ where: { id }, select: { checklist: true } });
+    // 不存在时交给 update 抛 P2025，避免把 404 误报成 400
+    if (current) assertPublishable(current.checklist, input.checklist);
+  }
   return prisma.schedule.update({ where: { id }, data: input });
 }
 

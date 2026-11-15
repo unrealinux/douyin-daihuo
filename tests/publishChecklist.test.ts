@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PUBLISH_CHECKLIST, checklistProgress, parseChecklist, serializeChecklist } from "@/lib/publishChecklist";
+import { PUBLISH_CHECKLIST, checklistProgress, parseChecklist, serializeChecklist, assertPublishable, PublishBlockedError } from "@/lib/publishChecklist";
 
 describe("parseChecklist", () => {
   it("defaults everything to false", () => {
@@ -45,5 +45,33 @@ describe("checklistProgress", () => {
     for (const k of Object.keys(state)) state[k] = true;
     expect(checklistProgress(state).ready).toBe(true);
     expect(checklistProgress(state).redlineMissing).toHaveLength(0);
+  });
+});
+
+describe("assertPublishable", () => {
+  it("throws when redline items are unchecked", () => {
+    const state = parseChecklist(null);
+    for (const k of Object.keys(state)) state[k] = true;
+    state.noBookCover = false;
+    expect(() => assertPublishable(serializeChecklist(state))).toThrow(PublishBlockedError);
+  });
+
+  it("passes when all redline items are checked", () => {
+    const state = parseChecklist(null);
+    for (const k of Object.keys(state)) state[k] = true;
+    expect(() => assertPublishable(serializeChecklist(state))).not.toThrow();
+  });
+
+  it("rejects a stored-complete schedule when the incoming checklist regresses", () => {
+    const complete = parseChecklist(null);
+    for (const k of Object.keys(complete)) complete[k] = true;
+    const regressed = { ...complete, similarity: false };
+    expect(() =>
+      assertPublishable(serializeChecklist(complete), serializeChecklist(regressed))
+    ).toThrow(PublishBlockedError);
+  });
+
+  it("treats a missing checklist as nothing checked", () => {
+    expect(() => assertPublishable(null)).toThrow(PublishBlockedError);
   });
 });

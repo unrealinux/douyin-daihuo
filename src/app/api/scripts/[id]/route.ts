@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getScript, setScriptStatus, deleteScript } from "@/services/scriptService";
+import { ComplianceBlockedError } from "@/lib/complianceCheck";
 import { Prisma, ScriptStatus } from "@prisma/client";
 
 function parseScriptId(id: string): number | null {
@@ -28,6 +29,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   } catch (e) {
     if (e instanceof SyntaxError) {
       return NextResponse.json({ error: "请求体不是有效 JSON" }, { status: 400 });
+    }
+    if (e instanceof ComplianceBlockedError) {
+      return NextResponse.json({ error: e.message, issues: e.redlineIssues }, { status: 400 });
     }
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
       return NextResponse.json({ error: "脚本不存在" }, { status: 404 });

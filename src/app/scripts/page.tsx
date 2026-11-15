@@ -60,11 +60,16 @@ function ScriptsList() {
   useEffect(() => { load(); }, [deepId]);
 
   const setStatus = async (s: Script, status: string) => {
-    await fetch(`/api/scripts/${s.id}`, {
+    const res = await fetch(`/api/scripts/${s.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      toast(data.error ?? "操作失败", "danger");
+      return;
+    }
     setOpen(null);
     load();
   };

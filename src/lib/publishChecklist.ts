@@ -67,3 +67,17 @@ export function checklistProgress(state: ChecklistState): ChecklistProgress {
   }
   return { done, total, ready: done === total, missing, redlineMissing };
 }
+
+/** 红线未过关时抛出，由 API 层转成 400。 */
+export class PublishBlockedError extends Error {
+  constructor(readonly redlineMissing: string[]) {
+    super(`未完成红线自检项：${redlineMissing.join("、")}`);
+    this.name = "PublishBlockedError";
+  }
+}
+
+/** 服务端发布门禁：incoming 优先于 stored。红线项未过即抛错。 */
+export function assertPublishable(stored?: string | null, incoming?: string | null): void {
+  const { redlineMissing } = checklistProgress(parseChecklist(incoming ?? stored));
+  if (redlineMissing.length) throw new PublishBlockedError(redlineMissing);
+}

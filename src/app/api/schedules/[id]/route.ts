@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateSchedule, deleteSchedule } from "@/services/scheduleService";
+import { PublishBlockedError } from "@/lib/publishChecklist";
 import { Prisma } from "@prisma/client";
 
 function parseScheduleId(id: string): number | null {
@@ -33,6 +34,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   } catch (e) {
     if (e instanceof SyntaxError) {
       return NextResponse.json({ error: "请求体不是有效 JSON" }, { status: 400 });
+    }
+    if (e instanceof PublishBlockedError) {
+      return NextResponse.json({ error: e.message, redlineMissing: e.redlineMissing }, { status: 400 });
     }
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
       return NextResponse.json({ error: "记录不存在" }, { status: 404 });

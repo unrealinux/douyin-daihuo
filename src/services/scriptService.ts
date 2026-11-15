@@ -4,6 +4,7 @@ import { getLlmClient } from "@/lib/llm";
 import { getLlmConfig } from "./settingService";
 import { parseScriptJson } from "./scriptParser";
 import { similarityRatio } from "@/lib/similarity";
+import { assertScriptCompliant } from "@/lib/complianceCheck";
 import { PLATFORM_LABEL } from "@/lib/selectionUtils";
 
 const STYLE_LABEL: Record<ScriptStyle, string> = {
@@ -123,6 +124,11 @@ export async function getScript(id: number) {
 }
 
 export async function setScriptStatus(id: number, status: ScriptStatus) {
+  if (status === ScriptStatus.ADOPTED) {
+    const script = await prisma.scriptIdea.findUnique({ where: { id } });
+    // 不存在时交给 update 抛 P2025，避免把 404 误报成 400
+    if (script) assertScriptCompliant(script);
+  }
   return prisma.scriptIdea.update({ where: { id }, data: { status } });
 }
 

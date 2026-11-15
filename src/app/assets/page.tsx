@@ -243,7 +243,8 @@ export default function AssetsPage() {
       }),
     });
     if (!res.ok) {
-      toast("标记发布失败", "danger");
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      toast(data.error ?? "标记发布失败", "danger");
       return;
     }
     toast("已标记为已发布", "success");

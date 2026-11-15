@@ -4,6 +4,8 @@ import {
   findBookMentions,
   findExtremeWords,
   findInternalLeaks,
+  assertScriptCompliant,
+  ComplianceBlockedError,
 } from "@/lib/complianceCheck";
 
 describe("findBookMentions", () => {
@@ -79,5 +81,31 @@ describe("checkScriptCompliance", () => {
     expect(r.redlineCount).toBe(0);
     expect(r.warnCount).toBeGreaterThanOrEqual(2);
     expect(r.issues.map((i) => i.rule)).toEqual(expect.arrayContaining(["广告法极限词", "史实校验"]));
+  });
+});
+
+describe("assertScriptCompliant", () => {
+  it("throws when a redline is hit", () => {
+    expect(() =>
+      assertScriptCompliant({ body: "这句话没问题", coverPrompt: "将书本摊开放在桌上" })
+    ).toThrow(ComplianceBlockedError);
+  });
+
+  it("allows warnings through", () => {
+    const input = { title: "最强的一期", body: "这段话说得很实在" };
+    expect(checkScriptCompliance(input).warnCount).toBeGreaterThan(0);
+    expect(() => assertScriptCompliant(input)).not.toThrow();
+  });
+
+  it("reports only redline issues on the error", () => {
+    try {
+      assertScriptCompliant({ body: "佣金 30% 很高", coverPrompt: "书" });
+      throw new Error("should have thrown");
+    } catch (e) {
+      expect(e).toBeInstanceOf(ComplianceBlockedError);
+      const err = e as ComplianceBlockedError;
+      expect(err.redlineIssues.length).toBe(2);
+      expect(err.redlineIssues.every((i) => i.level === "redline")).toBe(true);
+    }
   });
 });
