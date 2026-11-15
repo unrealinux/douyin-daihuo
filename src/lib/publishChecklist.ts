@@ -15,7 +15,7 @@ export const PUBLISH_CHECKLIST: ChecklistItem[] = [
   { key: "audioSync", label: "音画同步，无突然静音或爆音" },
   { key: "noBookCover", label: "AI 画面未出现书本封面", redline: true },
   { key: "facts", label: "史实 / 人名已人工校对", redline: true },
-  { key: "similarity", label: "二创相似度 <10%，非搬运", redline: true },
+  { key: "similarity", label: "二创相似度不超 30%（目标 <10%），非搬运", redline: true },
 ];
 
 export type ChecklistState = Record<string, boolean>;

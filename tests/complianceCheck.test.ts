@@ -109,3 +109,31 @@ describe("assertScriptCompliant", () => {
     }
   });
 });
+
+describe("相似度红线", () => {
+  it("treats similarity >= 30% as a redline", () => {
+    const r = checkScriptCompliance({ body: "这段口播已经重写过", similarity: 0.35 });
+    expect(r.ok).toBe(false);
+    const issue = r.issues.find((i) => i.rule === "二创相似度过高");
+    expect(issue?.level).toBe("redline");
+    expect(issue?.evidence).toBe("35%");
+  });
+
+  it("keeps 10-30% as advisory only", () => {
+    const r = checkScriptCompliance({ body: "这段口播已经重写过", similarity: 0.15 });
+    expect(r.ok).toBe(true);
+    expect(r.issues.some((i) => i.rule === "二创相似度过高")).toBe(false);
+  });
+
+  it("does not check similarity when there is no benchmark", () => {
+    const r = checkScriptCompliance({ body: "这段口播已经重写过", similarity: null });
+    expect(r.issues.some((i) => i.rule === "二创相似度过高")).toBe(false);
+    expect(checkScriptCompliance({ body: "没有对标时" }).ok).toBe(true);
+  });
+
+  it("blocks adopt through assertScriptCompliant", () => {
+    expect(() => assertScriptCompliant({ body: "照搬的稿子", similarity: 0.7 })).toThrow(
+      ComplianceBlockedError
+    );
+  });
+});

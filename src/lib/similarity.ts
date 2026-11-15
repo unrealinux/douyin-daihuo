@@ -37,10 +37,15 @@ export function similarityRatio(a: string, b: string): number {
 
 export type SimilarityLevel = "safe" | "caution" | "risky";
 
+/** SOP 目标：压到 10% 以下。 */
+export const SIMILARITY_TARGET = 0.1;
+/** SOP 底线：达到 30% 即视为搬运风险，属于红线。 */
+export const SIMILARITY_MAX = 0.3;
+
 /** 按 SOP 阈值分档：<10% 安全，<30% 需谨慎，≥30% 高风险。 */
 export function similarityLevel(ratio: number): SimilarityLevel {
-  if (ratio < 0.1) return "safe";
-  if (ratio < 0.3) return "caution";
+  if (ratio < SIMILARITY_TARGET) return "safe";
+  if (ratio < SIMILARITY_MAX) return "caution";
   return "risky";
 }
 

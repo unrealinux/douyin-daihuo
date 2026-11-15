@@ -1,4 +1,5 @@
 import { parseShotsJson } from "./shotUtils";
+import { similarityLevel, similarityPercent, SIMILARITY_MAX } from "./similarity";
 
 /**
  * 生成结果合规校验：把 SOP 的风控红线做成可自动检测的规则。
@@ -28,6 +29,8 @@ export interface ComplianceInput {
   body: string;
   shots?: string | null;
   coverPrompt?: string | null;
+  /** 与对标逐字稿的相似度，无对标时为 null。仅 ≥30% 判红线，10-30% 由页面徒章提示。 */
+  similarity?: number | null;
 }
 
 const NEGATION = /(禁止|不要|不得|严禁|无需|避免|没有|无|非|不出现|不画|不可)/;
@@ -96,6 +99,18 @@ export function checkScriptCompliance(input: ComplianceInput): ComplianceReport 
       field: "口播正文",
       message: "口播正文出现佣金/客单价等内部经营信息，观众不应听到",
       evidence: leaks.join("、"),
+    });
+  }
+
+  // 红线 3：与对标逐字稿相似度超底线
+  if (input.similarity != null && similarityLevel(input.similarity) === "risky") {
+    const pct = similarityPercent(input.similarity);
+    issues.push({
+      rule: "二创相似度过高",
+      level: "redline",
+      field: "口播正文",
+      message: `与对标逐字稿相似度 ${pct}%，超过 ${Math.round(SIMILARITY_MAX * 100)}% 底线，属于搬运风险，必须重写中段`,
+      evidence: `${pct}%`,
     });
   }
 
