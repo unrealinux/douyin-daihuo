@@ -6,6 +6,7 @@
 
 - 方法论与操作 SOP：[docs/sop/douyin-ai-video-ecommerce-sop.md](docs/sop/douyin-ai-video-ecommerce-sop.md)
 - 代码与 SOP 的差距、迭代路线：[docs/sop/gap-analysis-and-roadmap.md](docs/sop/gap-analysis-and-roadmap.md)
+- 变更记录：[docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ## 快速开始
 
