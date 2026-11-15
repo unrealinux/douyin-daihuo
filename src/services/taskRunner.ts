@@ -35,6 +35,9 @@ export async function getTask(id: number) {
   return prisma.scrapeTask.findUnique({ where: { id } });
 }
 
+const POLL_COOLDOWN_MS = 15_000;
+let lastPollAt = 0;
+
 export function spawnRunner(taskId: number) {
   const runnerPath = path.join(process.cwd(), "src", "crawlers", "runner.ts");
   const child = spawn("npx", ["tsx", runnerPath, String(taskId)], {
@@ -59,6 +62,12 @@ export async function retryTask(id: number) {
 
 /** 拉起排队中的任务；runner 内原子抢占，重复 spawn 安全 */
 export async function pollQueuedTasks() {
+  // 任务页每 2 秒轮询一次，不加节流会对同一个 QUEUED 任务反复开进程
+  // shortcut: 进程持续起不来时每 15 秒仍会重试一次，不会自动置为 FAILED，需手动删除任务
+  const now = Date.now();
+  if (now - lastPollAt < POLL_COOLDOWN_MS) return 0;
+  lastPollAt = now;
+
   const queued = await prisma.scrapeTask.findMany({
     where: { status: ScrapeTaskStatus.QUEUED },
     take: 5,

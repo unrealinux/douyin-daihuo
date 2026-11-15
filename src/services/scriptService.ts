@@ -4,6 +4,7 @@ import { getLlmClient } from "@/lib/llm";
 import { getLlmConfig } from "./settingService";
 import { parseScriptJson } from "./scriptParser";
 import { similarityRatio } from "@/lib/similarity";
+import { retryAsync } from "@/lib/retry";
 import { assertScriptCompliant } from "@/lib/complianceCheck";
 import { PLATFORM_LABEL } from "@/lib/selectionUtils";
 
@@ -45,21 +46,16 @@ export async function generateScript(input: GenerateInput) {
     { role: "user" as const, content: prompt },
   ];
 
-  const call = () =>
-    client.chat.completions.create({
+  const parsed = await retryAsync(async () => {
+    const res = await client.chat.completions.create({
       model: cfg.model,
       temperature: cfg.temperature,
       response_format: { type: "json_object" },
       messages,
     });
-
-  let raw = "";
-  try {
-    raw = (await call()).choices[0]?.message?.content ?? "";
-  } catch {
-    raw = (await call()).choices[0]?.message?.content ?? "";
-  }
-  const parsed = parseScriptJson(raw);
+    // 解析失败也算失败：模型偶尔会返回非 JSON，重试一次往往就好了
+    return parseScriptJson(res.choices[0]?.message?.content ?? "");
+  });
   const similarity = input.referenceTranscript
     ? Math.round(similarityRatio(parsed.body, input.referenceTranscript) * 10000) / 10000
     : null;
