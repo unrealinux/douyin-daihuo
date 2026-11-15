@@ -5,6 +5,7 @@ import { spawn } from "child_process";
 import path from "path";
 import { prisma } from "../lib/db";
 import { getCrawlerConfig } from "../services/settingService";
+import { inferPlatform, parsePriceText } from "../lib/productParse";
 
 function respawn(taskId: number) {
   const runnerPath = path.join(process.cwd(), "src", "crawlers", "runner.ts");
@@ -24,6 +25,40 @@ async function claimTask(taskId: number): Promise<boolean> {
   return result.count === 1;
 }
 
+async function markFailed(taskId: number, message: string) {
+  await prisma.scrapeTask.update({
+    where: { id: taskId },
+    data: { status: ScrapeTaskStatus.FAILED, message, finishedAt: new Date() },
+  });
+}
+
+/**
+ * 在页面里执行的取数脚本。必须写成字符串：tsx/esbuild 会给具名函数插入 __name 辅助，
+ * 传函数引用进去会在浏览器里抛 "__name is not defined"。
+ */
+const READ_FACTS_JS = `(() => {
+  const meta = (sel) => { const el = document.querySelector(sel); return el && el.content ? el.content.trim() : ""; };
+  const prices = [];
+  const pushPrice = (v) => { const n = typeof v === "number" ? v : Number(v); if (isFinite(n) && n >= 0) prices.push(n); };
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) { node.forEach(walk); return; }
+    if (node.offers) {
+      if (Array.isArray(node.offers)) node.offers.forEach((o) => pushPrice(o && o.price));
+      else pushPrice(node.offers.price);
+    }
+    Object.keys(node).forEach((k) => { if (k !== "offers") walk(node[k]); });
+  };
+  document.querySelectorAll('script[type="application/ld+json"]').forEach((el) => {
+    try { walk(JSON.parse(el.textContent || "null")); } catch (e) { /* 坏 JSON-LD 直接跳过 */ }
+  });
+  return {
+    title: meta('meta[property="og:title"]') || (document.title || "").trim(),
+    image: meta('meta[property="og:image"]'),
+    priceRaw: meta('meta[property="product:price:amount"]') || (prices.length ? String(prices[0]) : ""),
+  };
+})()`;
+
 async function main() {
   const taskId = Number(process.argv[2]);
   if (!Number.isInteger(taskId) || taskId <= 0) {
@@ -40,6 +75,11 @@ async function main() {
     process.exit(0);
   }
 
+  if (task.type !== "LINK" || !task.url) {
+    await markFailed(taskId, "关键词抓取已停用：请改为粘贴商品链接，逐条解析标题与价格");
+    process.exit(0);
+  }
+
   const cfg = await getCrawlerConfig();
   const maxRetries = 2;
   let browser: Browser | null = null;
@@ -51,70 +91,37 @@ async function main() {
     });
     const page = await browser.newPage();
     await page.setDefaultTimeout(cfg.timeoutSec * 1000);
+    await page.goto(task.url, { waitUntil: "domcontentloaded" });
 
-    const rows: Array<{
-      name: string;
-      url?: string;
-      category?: string;
-      price?: number;
-      commissionRate?: number;
-      dailySales?: number;
-    }> = [];
-
-    if (task.type === "KEYWORD" && task.keyword) {
-      // 抖音精选联盟/搜索页没有稳定公开结构，这里用通用电商搜索 fallback。
-      await page.goto(`https://www.baidu.com/s?wd=${encodeURIComponent(task.keyword + " 抖音 带货 商品")}`);
-      await page.waitForTimeout(1500);
-      const links = await page.$$eval("h3", (els) =>
-        els.slice(0, 5).map((el) => ({
-          name: el.textContent?.trim() ?? "",
-          url: el.querySelector("a")?.getAttribute("href") ?? "",
-        }))
-      );
-      for (const l of links) {
-        if (l.name) {
-          rows.push({ name: l.name, url: l.url || undefined, category: task.keyword });
-          await new Promise((r) => setTimeout(r, cfg.rateLimitMs));
-        }
-      }
-    } else if (task.type === "LINK" && task.url) {
-      await page.goto(task.url);
-      await page.waitForTimeout(2000);
-      const title = await page.title();
-      if (title) rows.push({ name: title, url: task.url });
-    }
-
-    if (!rows.length) {
-      await prisma.scrapeTask.update({
-        where: { id: taskId },
-        data: {
-          status: ScrapeTaskStatus.FAILED,
-          message: "未抓取到数据。当前为网页搜索兜底（非抖音商品库），请改用手动录入或 CSV 导入。",
-          finishedAt: new Date(),
-        },
-      });
+    const facts = (await page.evaluate(READ_FACTS_JS)) as { title: string; image: string; priceRaw: string };
+    const name = facts.title.trim();
+    if (!name) {
+      await markFailed(taskId, "页面没有可用标题（可能需要登录、被反爬，或链接不是商品详情页）");
       process.exit(0);
     }
 
+    const price = parsePriceText(facts.priceRaw);
+    const platform = inferPlatform(task.url);
+    const missing = [price === null ? "价格" : "", facts.image ? "" : "图片"].filter(Boolean);
+
     await prisma.$transaction([
-      ...rows.map((row) =>
-        prisma.product.create({
-          data: {
-            name: row.name,
-            url: row.url,
-            category: row.category,
-            price: row.price,
-            commissionRate: row.commissionRate,
-            dailySales: row.dailySales,
-            source: "CRAWLER",
-          },
-        })
-      ),
+      prisma.product.create({
+        data: {
+          name,
+          url: task.url,
+          imageUrl: facts.image || null,
+          price,
+          platform,
+          source: "CRAWLER",
+        },
+      }),
       prisma.scrapeTask.update({
         where: { id: taskId },
         data: {
           status: ScrapeTaskStatus.SUCCESS,
-          message: `已入库 ${rows.length} 条（网页搜索兜底，标题可能不是真实商品，请核对后使用）`,
+          message:
+            `已解析标题` +
+            (missing.length ? `，页面未提供：${missing.join("、")}（佣金/日销需在精选联盟后台核对）` : " · 价格 · 图片"),
           finishedAt: new Date(),
         },
       }),
@@ -127,25 +134,17 @@ async function main() {
         where: { id: taskId },
         data: { status: ScrapeTaskStatus.QUEUED, retryCount: retries, message: null },
       });
-      const delay = Math.pow(2, retries) * 1000;
-      await new Promise((r) => setTimeout(r, delay));
+      await new Promise((r) => setTimeout(r, Math.pow(2, retries) * 1000));
       respawn(taskId);
     } else {
-      await prisma.scrapeTask.update({
-        where: { id: taskId },
-        data: {
-          status: ScrapeTaskStatus.FAILED,
-          message: `抓取失败：${e instanceof Error ? e.message : String(e)}`,
-          finishedAt: new Date(),
-        },
-      });
+      await markFailed(taskId, `抓取失败：${e instanceof Error ? e.message : String(e)}`);
     }
   } finally {
     if (browser) {
       try {
         await browser.close();
       } catch {
-        /* ignore */
+        // 关闭失败不影响任务结果
       }
     }
   }

@@ -8,7 +8,6 @@ export interface LlmConfig {
 }
 
 export interface CrawlerConfig {
-  rateLimitMs: number;
   proxyUrl: string;
   timeoutSec: number;
 }
@@ -21,7 +20,6 @@ export const DEFAULT_LLM: LlmConfig = {
 };
 
 export const DEFAULT_CRAWLER: CrawlerConfig = {
-  rateLimitMs: 3000,
   proxyUrl: "",
   timeoutSec: 30,
 };

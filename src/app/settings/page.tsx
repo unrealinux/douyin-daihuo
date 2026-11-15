@@ -8,7 +8,7 @@ import Spotlight from "@/components/Spotlight";
 
 interface Settings {
   llm: { baseUrl: string; apiKey: string; model: string; temperature: number; apiKeyConfigured?: boolean };
-  crawler: { rateLimitMs: number; proxyUrl: string; timeoutSec: number };
+  crawler: { proxyUrl: string; timeoutSec: number };
 }
 
 export default function SettingsPage() {
@@ -87,7 +87,6 @@ export default function SettingsPage() {
               </span>
               <h2 className="font-semibold">爬虫配置</h2>
             </div>
-            <div><Label>限速间隔 (ms)</Label><Input type="number" value={s.crawler.rateLimitMs} onChange={(e) => up("crawler", "rateLimitMs", Number(e.target.value))} /></div>
             <div><Label>代理地址（留空表示直连）</Label><Input value={s.crawler.proxyUrl} onChange={(e) => up("crawler", "proxyUrl", e.target.value)} /></div>
             <div><Label>超时秒数</Label><Input type="number" value={s.crawler.timeoutSec} onChange={(e) => up("crawler", "timeoutSec", Number(e.target.value))} /></div>
           </Card>

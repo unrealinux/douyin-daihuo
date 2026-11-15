@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createTask, listTasks, spawnRunner, checkPlaywright, pollQueuedTasks } from "@/services/taskRunner";
 
+const MAX_URL_LENGTH = 2000;
+
 export async function GET() {
   // 恢复因进程退出而未跑完的排队任务
   void pollQueuedTasks();
@@ -9,17 +11,33 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  if (!body.keyword && !body.url) {
-    return NextResponse.json({ error: "需要 keyword 或 url" }, { status: 400 });
+  let body: { url?: unknown; productId?: unknown };
+  try {
+    body = (await req.json()) as { url?: unknown; productId?: unknown };
+  } catch {
+    return NextResponse.json({ error: "请求体不是有效 JSON" }, { status: 400 });
   }
+
+  const raw = typeof body.url === "string" ? body.url.trim() : "";
+  if (!raw) return NextResponse.json({ error: "需要商品链接" }, { status: 400 });
+  if (raw.length > MAX_URL_LENGTH) return NextResponse.json({ error: "链接过长" }, { status: 400 });
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return NextResponse.json({ error: "链接格式不正确" }, { status: 400 });
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return NextResponse.json({ error: "只支持 http / https 链接" }, { status: 400 });
+  }
+
+  const productId = Number(body.productId);
   const task = await createTask({
-    type: body.url ? "LINK" : "KEYWORD",
-    keyword: body.keyword,
-    url: body.url,
-    productId: body.productId ? Number(body.productId) : undefined,
+    type: "LINK",
+    url: parsed.toString(),
+    productId: Number.isInteger(productId) && productId > 0 ? productId : undefined,
   });
-  // 只 spawn 当前任务，避免与 poll 双重拉起
   spawnRunner(task.id);
   return NextResponse.json(task, { status: 201 });
 }

@@ -5,12 +5,12 @@ import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import { EmptyState, ErrorBanner, PageHeader } from "@/components/PageChrome";
 import { useToast } from "@/components/Toast";
-import { Button, Card, Input, Label } from "@/components/ui";
+import { Button, Card, Label } from "@/components/ui";
 import Reveal from "@/components/Reveal";
 import Spotlight from "@/components/Spotlight";
 
 interface Task {
-  id: number; type: string; keyword?: string | null; url?: string | null;
+  id: number; type: string; url?: string | null;
   status: string; message?: string | null; retryCount: number; createdAt: string;
 }
 
@@ -18,8 +18,7 @@ export default function TasksPage() {
   const toast = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [pwOk, setPwOk] = useState(true);
-  const [keyword, setKeyword] = useState("");
-  const [link, setLink] = useState("");
+  const [links, setLinks] = useState("");
   const [msg, setMsg] = useState("");
   const [msgOk, setMsgOk] = useState(true);
   const [err, setErr] = useState("");
@@ -46,34 +45,40 @@ export default function TasksPage() {
     return () => window.clearInterval(id);
   }, [tasks, load]);
 
-  const submit = async (type: "KEYWORD" | "LINK") => {
+  const submit = async () => {
     setMsg("");
-    if (type === "KEYWORD" && !keyword.trim()) {
-      setMsg("请输入关键词");
+    const urls = links
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (!urls.length) {
+      setMsg("请粘贴至少一条商品链接");
       setMsgOk(false);
       return;
     }
-    if (type === "LINK" && !link.trim()) {
-      setMsg("请输入链接");
-      setMsgOk(false);
-      return;
+    let created = 0;
+    let firstError = "";
+    for (const url of urls) {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (res.ok) created++;
+      else if (!firstError) firstError = data.error ?? "创建失败";
     }
-    const res = await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(type === "KEYWORD" ? { keyword: keyword.trim() } : { url: link.trim() }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setKeyword(""); setLink("");
-      setMsg(`任务 #${data.id} 已创建`);
+    setLinks("");
+    if (created) {
+      setMsg(`已创建 ${created} 个任务`);
       setMsgOk(true);
-      toast(`任务 #${data.id} 已创建`, "success");
-      load();
-    } else {
-      setMsg(data.error ?? "创建失败");
+      toast(`已创建 ${created} 个任务`, "success");
+    }
+    if (firstError) {
+      setMsg(firstError);
       setMsgOk(false);
     }
+    load();
   };
 
   const retry = async (id: number) => {
@@ -96,7 +101,7 @@ export default function TasksPage() {
       {err && <ErrorBanner message={err} onRetry={load} />}
 
       <div className="rounded-xl border border-warning/30 bg-warning/10 px-3.5 py-3 text-sm text-warning">
-        当前抓取是<strong className="font-medium">网页搜索兜底</strong>（百度关键词 / 打开链接取标题），不是抖音精选联盟商品库。结果请人工核对，正式选品请用手动录入或 CSV 导入。
+        当前只做<strong className="font-medium">链接解析</strong>：打开你粘贴的商品链接，读页面自带的 og / JSON-LD 元数据（标题、价格、封面）。不猜 DOM 结构、不靠登录态，但拿不到佣金率与日销，那两项仍需在精选联盟后台看。
       </div>
 
       {!pwOk && (
@@ -105,37 +110,28 @@ export default function TasksPage() {
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Card className="space-y-3 p-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent">
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
-              </svg>
-            </span>
-            <Label htmlFor="kw">关键词搜索</Label>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input id="kw" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="例如：厨房 收纳 爆款" />
-            <Button onClick={() => submit("KEYWORD")}>抓取</Button>
-          </div>
-        </Card>
-
-        <Card className="space-y-3 p-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-300">
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-              </svg>
-            </span>
-            <Label htmlFor="link">链接抓取</Label>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input id="link" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." />
-            <Button onClick={() => submit("LINK")}>抓取</Button>
-          </div>
-        </Card>
-      </div>
+      <Card className="space-y-3 p-4">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-300">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </span>
+          <Label htmlFor="links">商品链接（每行一条）</Label>
+        </div>
+        <textarea
+          id="links"
+          value={links}
+          onChange={(e) => setLinks(e.target.value)}
+          rows={4}
+          placeholder={"https://haohuo.jinritemai.com/views/product/detail?id=...\nhttps://..."}
+          className="w-full rounded-lg border border-line bg-white/5 px-3 py-2 font-mono text-xs text-white outline-none transition-all duration-200 ease-out-expo placeholder:text-white/30 focus:border-accent/60 focus:bg-white/[0.07] focus:ring-1 focus:ring-accent/30"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-fg-2">只读页面自带的标题 / 价格 / 封面，缺的字段会写在任务结果里</p>
+          <Button onClick={submit}>解析</Button>
+        </div>
+      </Card>
 
       {msg && <p className={`text-sm ${msgOk ? "text-success" : "text-danger"}`}>{msg}</p>}
 
@@ -147,19 +143,13 @@ export default function TasksPage() {
               <Spotlight>
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line/60 bg-surface px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-white/10">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${t.type === "KEYWORD" ? "bg-accent/15 text-accent" : "bg-cyan-500/15 text-cyan-300"}`}>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-300">
                       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        {t.type === "KEYWORD" ? (
-                          <path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
-                        ) : (
-                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                        )}
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                       </svg>
                     </span>
                     <div className="min-w-0">
-                      <div className="font-medium text-fg">
-                        {t.type === "KEYWORD" ? `关键词: ${t.keyword}` : `链接: ${t.url}`}
-                      </div>
+                      <div className="break-all font-medium text-fg">{t.url ?? `任务 #${t.id}`}</div>
                       <div className="tnum text-xs text-fg-2">
                         {new Date(t.createdAt).toLocaleString()} · 重试 {t.retryCount} 次
                       </div>
@@ -175,7 +165,7 @@ export default function TasksPage() {
             </Reveal>
           ))}
           {tasks.length === 0 && !err && (
-            <EmptyState title="暂无任务" description="关键词会走网页搜索兜底；精确选品请用手动/CSV" />
+            <EmptyState title="暂无任务" description="粘贴商品链接后会逐条解析；识别不出标题的会标为失败并写明原因" />
           )}
         </div>
       </section>
